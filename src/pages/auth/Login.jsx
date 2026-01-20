@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import "./login.css";
+import "./Login.css";
 import jioji from "../../assets/Jioji_logo.png";
 
 import sweetCorn1 from "../../assets/products_images/sweetcorn1.jpeg";
