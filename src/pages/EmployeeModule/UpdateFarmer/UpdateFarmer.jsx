@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import './UpdateFarmer.css';
 import { useEffect } from 'react';
+import { useToast } from '../../../hooks/useToast';
 
 
 const UpdateFarmer = () => {
+  const { showToast, ToastComponent } = useToast();
   const [formData, setFormData] = useState({
     name: '',
     farmerId: '',
@@ -86,7 +88,7 @@ useEffect(() => {
   const handleSubmit = (e) => {
     e.preventDefault();
     // console.log('Updated Farmer Data:', formData);
-    alert('Farmer data updated successfully!');
+    showToast('Farmer data updated successfully!', 'success');
   };
 
   const handleCancel = () => {
@@ -366,6 +368,9 @@ useEffect(() => {
             </button>
           </div>
         </form>
+        
+        {/* Toast Notifications */}
+        <ToastComponent />
       </div>
   );
 };

@@ -1,12 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Search, MoreVertical, Eye, Pencil, Trash2 } from "lucide-react";
+import { useToast } from "../../hooks/useToast";
 import "./Farmers.css";
 
-const BASE_URL = "https://jiojibackendv1-production.up.railway.app";
+// const BASE_URL = "https://jiojibackendv1-production.up.railway.app";
+const BASE_URL = "http://localhost:8080";
 const getToken = () => localStorage.getItem("token");
 
 const FarmerList = () => {
+  const { showToast, ToastComponent } = useToast();
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -54,7 +57,7 @@ const FarmerList = () => {
       setTotalPages(json.data?.totalPages || 1);
     } catch (err) {
       console.error(err);
-      alert(err.message);
+      showToast(err.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -100,10 +103,10 @@ const FarmerList = () => {
         throw new Error("Failed to delete");
       }
 
-      alert("Farmer deleted successfully");
+      showToast("Farmer deleted successfully", "success");
       fetchEmployeeFarmerSurveys();
     } catch (err) {
-      alert(err.message);
+      showToast(err.message, "error");
     }
   };
 
@@ -289,6 +292,9 @@ const FarmerList = () => {
       >
         Showing {filteredSurveys.length} of {surveys.length} farmers
       </div>
+      
+      {/* Toast Notifications */}
+      <ToastComponent />
     </div>
   );
 };

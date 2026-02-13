@@ -3,9 +3,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useFetch } from '../../hooks/useFetch';
 import { productApi } from '../../api/productApi';
 import { orderApi } from '../../api/orderApi';
+import { useToast } from '../../hooks/useToast';
 
 const UserDashboard = () => {
   const { user } = useAuth();
+  const { showToast, ToastComponent } = useToast();
   const { data: products, loading: productsLoading } = useFetch(() => productApi.getAllProducts());
   const { data: myOrders, loading: ordersLoading } = useFetch(() => user?.userId ? orderApi.getMyOrders(user.userId) : null);
 
@@ -33,9 +35,9 @@ const UserDashboard = () => {
         ]
       };
       await orderApi.createOrder(payload);
-      alert(`Order placed successfully for ${product.productName}! Our team will contact you for payment.`);
+      showToast(`Order placed successfully for ${product.productName}! Our team will contact you for payment.`, 'success');
     } catch (error) {
-      alert('Failed to place order: ' + error.message);
+      showToast('Failed to place order: ' + error.message, 'error');
     }
   };
 
@@ -126,6 +128,9 @@ const UserDashboard = () => {
           </div>
         )}
       </div>
+      
+      {/* Toast Notifications */}
+      <ToastComponent />
     </div>
   );
 };

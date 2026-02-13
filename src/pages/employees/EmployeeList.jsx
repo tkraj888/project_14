@@ -470,10 +470,11 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { MoreVertical, Eye, Power, PowerOff, Search } from "lucide-react";
+import { MoreVertical, Eye, Power, PowerOff, Search, MapPin } from "lucide-react";
 import "./EmployeeList1.css";
 
-const BASE_URL = "https://jiojibackendv1-production.up.railway.app";
+// const BASE_URL = "https://jiojibackendv1-production.up.railway.app";
+const BASE_URL = "http://localhost:8080";
 const getToken = () => localStorage.getItem("token");
 
 const EmployeeList = () => {
@@ -840,6 +841,9 @@ const EmployeeList = () => {
                       {open === i && (
                         <div className="menu" style={{ right: 0 }}>
                           <span onClick={() => handleView(e)}><Eye size={14} /> View</span>
+                          <span onClick={() => navigate(`/admin/employee-location/${e.userId}`)} style={{ color: "#007bff" }}>
+                            <MapPin size={14} /> Location History
+                          </span>
                           {(e.accountLocked || e.status === "BLOCKED" || e.status === "INACTIVE") ? (
                             <span onClick={() => handleDeactivate(e)} style={{ color: "#28a745" }}>
                               <Power size={14} /> Activate

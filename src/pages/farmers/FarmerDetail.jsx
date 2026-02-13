@@ -2,14 +2,17 @@ import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { useToast } from "../../hooks/useToast";
 import "./FarmersDetails.css";
 
-const BASE_URL = "https://jiojibackendv1-production.up.railway.app";
+// const BASE_URL = "https://jiojibackendv1-production.up.railway.app";
+const BASE_URL = "http://localhost:8080";
 const getToken = () => localStorage.getItem("token");
 
 const FarmerDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { showToast, ToastComponent } = useToast();
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -83,7 +86,7 @@ const FarmerDetail = () => {
       pdf.save(`Survey-${data?.formNumber || id || "Details"}.pdf`);
     } catch (error) {
       console.error("PDF Download Error:", error);
-      alert("Failed to download PDF. Please try again.");
+      showToast("Failed to download PDF. Please try again.", "error");
     }
   };
 
@@ -102,7 +105,7 @@ const FarmerDetail = () => {
       document.body.removeChild(link);
     } catch (error) {
       console.error("Image Download Error:", error);
-      alert("Failed to download image.");
+      showToast("Failed to download image.", "error");
     }
   };
 
@@ -299,6 +302,9 @@ const FarmerDetail = () => {
           Back
         </button>
       </div>
+      
+      {/* Toast Notifications */}
+      <ToastComponent />
     </div>
   );
 };

@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import { BsStopwatch } from "react-icons/bs";
 import { SlCalender } from "react-icons/sl";
 import { RiAccountBoxFill } from "react-icons/ri";
 import { VscFileSubmodule } from "react-icons/vsc";
+import { locationService } from "../../utils/locationService";
+import Toast from "../../components/Toast";
+import { useToast } from "../../hooks/useToast";
+import { formatTo12Hour } from "../../utils/formatTime";
 
 import {
   PieChart,
@@ -19,8 +21,8 @@ import {
 import "./styles/EmployeeDashboard.css";
 import { useEffect } from "react";
 
-const API_BASE_URL = "https://jiojibackendv1-production.up.railway.app";
-
+// const API_BASE_URL = "https://jiojibackendv1-production.up.railway.app";
+const API_BASE_URL = "http://localhost:8080";
 const authenticatedFetch = async (url, options = {}) => {
   const token = localStorage.getItem("token");
 
@@ -53,12 +55,27 @@ const authenticatedFetch = async (url, options = {}) => {
 
 export default function EmployeeDashboard() {
   const navigate = useNavigate();
-  const [attendanceStatus, setAttendanceStatus] = useState("PRESENT");
+  const { toasts, removeToast, success, error: showError } = useToast();
   const [chartData, setChartData] = useState([]);
   const [recentFarmers, setRecentFarmers] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [surveyStatusCount, setSurveyStatusCount] = useState(null);
+  
+  // Attendance states
+  const [todayAttendance, setTodayAttendance] = useState(null);
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [checkingOut, setCheckingOut] = useState(false);
+  const [attendanceError, setAttendanceError] = useState('');
+  const [requestingLeave, setRequestingLeave] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [capturedLocation, setCapturedLocation] = useState(null);
+  const [locationAction, setLocationAction] = useState(''); // 'checkin' or 'checkout'
+  const [leaveData, setLeaveData] = useState({
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
+    reason: '',
+    leaveType: 'SICK_LEAVE'
+  });
 
   const total = chartData?.reduce((sum, item) => sum + item.value, 0) || 0;
 
@@ -97,27 +114,68 @@ export default function EmployeeDashboard() {
         { method: "GET" }
       );
 
-      if (!res.ok) return;
-
-      const data = await res.json();
-
-      if (data?.attendanceStatus) {
-        setAttendanceStatus(data.attendanceStatus); // 👈 KEY LINE
+      if (!res.ok) {
+        if (res.status === 404) {
+          setTodayAttendance(null);
+        }
+        return;
       }
+
+      const response = await res.json();
+      const data = response.data || response;
+      
+      setTodayAttendance(data);
     } catch (err) {
-      console.error("Attendance fetch failed", err);
+      // Silent fail - user will see check-in button
     }
   };
 
-  const markAttendance = async (status) => {
+  const handleCheckIn = async () => {
+    setCheckingIn(true);
+    setAttendanceError('');
+
+    try {
+      if (todayAttendance && (todayAttendance.checkInTime || todayAttendance.checkedIn)) {
+        showError('You have already checked in for today!');
+        setCheckingIn(false);
+        return;
+      }
+
+      const location = await locationService.getCurrentLocation();
+      
+      setCapturedLocation(location);
+      setLocationAction('checkin');
+      setShowLocationModal(true);
+      
+    } catch (err) {
+      if (err.message.includes('Location') || err.message.includes('permission')) {
+        showError('Please enable location access to check in. Go to your browser settings and allow location permission.');
+      } else {
+        showError(err.message || 'Check-in failed');
+      }
+    } finally {
+      setCheckingIn(false);
+    }
+  };
+
+  const confirmCheckIn = async () => {
+    setCheckingIn(true);
+    
     try {
       const userId = Number(localStorage.getItem("userId"));
-      if (!userId) return;
+      if (!userId) {
+        throw new Error('User ID not found');
+      }
 
       const payload = {
         userId,
         date: new Date().toISOString().split("T")[0],
-        attendanceStatus: status,
+        attendanceStatus: "PRESENT",
+        location: {
+          latitude: capturedLocation.latitude,
+          longitude: capturedLocation.longitude,
+          address: capturedLocation.address
+        }
       };
 
       const res = await authenticatedFetch(
@@ -128,11 +186,163 @@ export default function EmployeeDashboard() {
         }
       );
 
-      if (!res.ok) throw new Error("Attendance API failed");
-
-      // console.log("✅ Attendance marked");
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.message || "Check-in failed");
+      }
+      
+      success('Check-in successful! Your attendance has been recorded.');
+      
+      setShowLocationModal(false);
+      setCapturedLocation(null);
+      await fetchTodayAttendance();
+      
     } catch (err) {
-      console.error("❌ Attendance error:", err);
+      setAttendanceError(err.message || 'Check-in failed');
+      setShowLocationModal(false);
+    } finally {
+      setCheckingIn(false);
+    }
+  };
+
+  const handleCheckOut = async () => {
+    setCheckingOut(true);
+    setAttendanceError('');
+
+    try {
+      if (!todayAttendance || (!todayAttendance.checkInTime && !todayAttendance.checkedIn)) {
+        showError('You must check in first!');
+        setCheckingOut(false);
+        return;
+      }
+
+      if (todayAttendance.checkOutTime || todayAttendance.checkedOut) {
+        showError('You have already checked out today!');
+        setCheckingOut(false);
+        return;
+      }
+
+      const location = await locationService.getCurrentLocation();
+      
+      setCapturedLocation(location);
+      setLocationAction('checkout');
+      setShowLocationModal(true);
+      
+    } catch (err) {
+      if (err.message.includes('Location') || err.message.includes('permission')) {
+        showError('Please enable location access to check out.');
+      } else {
+        showError(err.message || 'Check-out failed');
+      }
+    } finally {
+      setCheckingOut(false);
+    }
+  };
+
+  const confirmCheckOut = async () => {
+    setCheckingOut(true);
+    
+    try {
+      const userId = Number(localStorage.getItem("userId"));
+
+      const payload = {
+        userId,
+        date: new Date().toISOString().split("T")[0],
+        checkOut: true,
+        location: {
+          latitude: capturedLocation.latitude,
+          longitude: capturedLocation.longitude,
+          address: capturedLocation.address
+        }
+      };
+
+      const res = await authenticatedFetch(
+        `${API_BASE_URL}/api/v1/attendance/checkout`,
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.message || "Check-out failed");
+      }
+      
+      success('Check-out successful! Have a great day!');
+      
+      setShowLocationModal(false);
+      setCapturedLocation(null);
+      await fetchTodayAttendance();
+      
+    } catch (err) {
+      setAttendanceError(err.message || 'Check-out failed');
+      setShowLocationModal(false);
+    } finally {
+      setCheckingOut(false);
+    }
+  };
+
+  const handleRequestLeave = async () => {
+    setRequestingLeave(true);
+    setAttendanceError('');
+
+    try {
+      const userId = Number(localStorage.getItem("userId"));
+      if (!userId) {
+        throw new Error('User ID not found');
+      }
+
+      // Validation
+      if (!leaveData.reason.trim()) {
+        showError('Please provide a reason for leave');
+        setRequestingLeave(false);
+        return;
+      }
+
+      if (new Date(leaveData.endDate) < new Date(leaveData.startDate)) {
+        showError('End date cannot be before start date');
+        setRequestingLeave(false);
+        return;
+      }
+
+      const payload = {
+        userId,
+        startDate: leaveData.startDate,
+        endDate: leaveData.endDate,
+        reason: leaveData.reason,
+        leaveType: leaveData.leaveType,
+        status: 'PENDING'
+      };
+
+      const res = await authenticatedFetch(
+        `${API_BASE_URL}/api/v1/attendance/leave/request`,
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.message || "Leave request failed");
+      }
+
+      success('Leave request submitted successfully! Admin will review your request.');
+      
+      // Reset form and close modal
+      setLeaveData({
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date().toISOString().split('T')[0],
+        reason: '',
+        leaveType: 'SICK_LEAVE'
+      });
+      setShowLeaveModal(false);
+      
+    } catch (err) {
+      showError(err.message || 'Leave request failed');
+    } finally {
+      setRequestingLeave(false);
     }
   };
 
@@ -148,13 +358,9 @@ export default function EmployeeDashboard() {
       }
 
       const data = await res.json();
-
-      // ✅ CONSOLE OUTPUT YOU WANT
-      // console.log("📊 Survey Status Count API Response:", data);
-
       setSurveyStatusCount(data);
     } catch (error) {
-      console.error("❌ Survey status count error:", error);
+      // Silent fail
     }
   };
 
@@ -170,12 +376,6 @@ export default function EmployeeDashboard() {
       );
       const inactiveJson = await inactiveRes.json();
 
-      // console.log("ACTIVE response:", activeJson);
-      // console.log("ACTIVE total:", activeJson?.totalElements);
-
-      // console.log("INACTIVE response:", inactiveJson);
-      // console.log("INACTIVE total:", inactiveJson?.totalElements);
-      // ✅ CORRECT
       const activeCount = activeJson?.totalElements || 0;
       const inactiveCount = inactiveJson?.totalElements || 0;
 
@@ -184,7 +384,6 @@ export default function EmployeeDashboard() {
         { name: "Inactive", value: inactiveCount, color: "#ff9800" },
       ]);
     } catch (err) {
-      console.error("Pie chart fetch failed", err);
       setChartData([]);
     }
   };
@@ -196,9 +395,7 @@ export default function EmployeeDashboard() {
         { method: "GET" }
       );
 
-      // 👇 HANDLE 401 SAFELY IN DASHBOARD
       if (res.status === 401) {
-        console.warn("Unauthorized on dashboard – showing empty data");
         setRecentFarmers([]);
         return;
       }
@@ -216,29 +413,133 @@ export default function EmployeeDashboard() {
 
       setRecentFarmers(latestThree);
     } catch (err) {
-      console.error("Dashboard fetch failed:", err);
       setRecentFarmers([]);
     }
   };
 
   return (
     <div className="employee-dashboard-content">
-      {/* <div className="top-bar"> */}
+      {/* TOAST NOTIFICATIONS */}
+      {toasts.map((toast) => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => removeToast(toast.id)}
+        />
+      ))}
+      
       <div className="top-bar dashboard-top-bar">
         <div className="date-box">
-          <select
-            className="status-dropdown"
-            value={attendanceStatus}
-            onChange={(e) => {
-              const value = e.target.value;
-              setAttendanceStatus(value);
-              markAttendance(value);
-            }}
-          >
-            <option value="PRESENT">Present</option>
-            <option value="LEAVE">Leave</option>
-            <option value="ABSENT">Absent</option>
-          </select>
+          {/* ATTENDANCE CHECK IN/OUT BUTTONS */}
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* If no attendance record exists, show check-in button */}
+            {!todayAttendance ? (
+              // NOT CHECKED IN - Show Check In Button
+              <button
+                onClick={handleCheckIn}
+                disabled={checkingIn}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: checkingIn ? '#ccc' : '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: checkingIn ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <span style={{ fontSize: '18px' }}>📍</span>
+                {checkingIn ? 'Checking In...' : 'Check In'}
+              </button>
+            ) : (
+              // ATTENDANCE RECORD EXISTS - User has checked in
+              // Show status and checkout button
+              <>
+                <div style={{
+                  padding: '10px 16px',
+                  backgroundColor: '#d4edda',
+                  color: '#155724',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <span>✓</span>
+                  Checked In: {formatTo12Hour(todayAttendance.checkInTime) || 'Today'}
+                </div>
+                
+                {/* CHECKOUT BUTTON - Always show if attendance exists and not checked out */}
+                {!todayAttendance.checkOutTime && !todayAttendance.checkedOut && (
+                  <button
+                    onClick={handleCheckOut}
+                    disabled={checkingOut}
+                    style={{
+                      padding: '10px 20px',
+                      backgroundColor: checkingOut ? '#ccc' : '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: checkingOut ? 'not-allowed' : 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <span style={{ fontSize: '18px' }}>🚪</span>
+                    {checkingOut ? 'Checking Out...' : 'Check Out'}
+                  </button>
+                )}
+                
+                {/* CHECKED OUT STATUS - Show if checked out */}
+                {(todayAttendance.checkOutTime || todayAttendance.checkedOut) && (
+                  <div style={{
+                    padding: '10px 16px',
+                    backgroundColor: '#f8d7da',
+                    color: '#721c24',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <span>✓</span>
+                    Checked Out: {formatTo12Hour(todayAttendance.checkOutTime) || 'Today'}
+                  </div>
+                )}
+              </>
+            )}
+            
+            {/* LEAVE REQUEST BUTTON */}
+            <button
+              onClick={() => setShowLeaveModal(true)}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#ffc107',
+                color: '#000',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <span style={{ fontSize: '18px' }}>🏖️</span>
+              Request Leave
+            </button>
+          </div>
 
           <span className="dot"></span>
 
@@ -250,26 +551,10 @@ export default function EmployeeDashboard() {
             })}
           </span>
 
-          <div
-            className="date-pill"
-            onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-          >
+          <div className="date-pill">
             <SlCalender />
-            {selectedDate.toLocaleDateString()}
+            {new Date().toLocaleDateString()}
           </div>
-
-          {isCalendarOpen && (
-            <div className="datepicker-wrapper">
-              <DatePicker
-                inline
-                selected={selectedDate}
-                onChange={(date) => {
-                  setSelectedDate(date);
-                  setIsCalendarOpen(false);
-                }}
-              />
-            </div>
-          )}
         </div>
 
         <div className="profile">
@@ -281,6 +566,21 @@ export default function EmployeeDashboard() {
           </div>
         </div>
       </div>
+
+      {/* ERROR MESSAGE */}
+      {attendanceError && (
+        <div style={{
+          backgroundColor: '#f8d7da',
+          color: '#721c24',
+          padding: '12px 16px',
+          borderRadius: '8px',
+          marginBottom: '16px',
+          border: '1px solid #f5c6cb',
+          fontSize: '14px'
+        }}>
+          {attendanceError}
+        </div>
+      )}
 
       <div className="stats-row">
         <div className="stat-card total_data">
@@ -309,12 +609,28 @@ export default function EmployeeDashboard() {
           </div>
           <h1>{surveyStatusCount?.pendingCount ?? 0}</h1>
         </div>
+      </div>
 
-        <div className="quick-box">
-          <h4>Quick Actions</h4>
-          <button onClick={handleFillSurvey}>➕ Fill Farmer Survey</button>
-          <button onClick={handleUpdateData}>✏️ Update Farmer Data</button>
-          <button onClick={handleViewHistory}>📜 Farmer History</button>
+      {/* QUICK ACTIONS - Now below stat cards */}
+      <div className="quick-actions-section">
+        <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', color: '#333' }}>Quick Actions</h3>
+        <div className="quick-actions-grid">
+          <button className="quick-action-card" onClick={handleFillSurvey}>
+            <span className="action-icon">➕</span>
+            <span className="action-text">Fill Farmer Survey</span>
+          </button>
+          <button className="quick-action-card" onClick={handleUpdateData}>
+            <span className="action-icon">✏️</span>
+            <span className="action-text">Update Farmer Data</span>
+          </button>
+          <button className="quick-action-card" onClick={handleViewHistory}>
+            <span className="action-icon">📜</span>
+            <span className="action-text">Farmer History</span>
+          </button>
+          <button className="quick-action-card" onClick={() => navigate('/employee/my-leaves')}>
+            <span className="action-icon">🏖️</span>
+            <span className="action-text">My Leaves</span>
+          </button>
         </div>
       </div>
 
@@ -370,6 +686,10 @@ export default function EmployeeDashboard() {
       </div>
 
       <div className="chart-box">
+        <div style={{ marginBottom: '16px' }}>
+          <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', color: '#333' }}>Farmer Survey Status</h3>
+          <p style={{ margin: 0, fontSize: '13px', color: '#666' }}>Distribution of active and inactive farmer surveys</p>
+        </div>
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
             <Pie
@@ -391,6 +711,340 @@ export default function EmployeeDashboard() {
             <Legend layout="horizontal" verticalAlign="bottom" height={36} />
           </PieChart>
         </ResponsiveContainer>
+      </div>
+
+      {/* LOCATION CONFIRMATION MODAL */}
+      {showLocationModal && capturedLocation && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '500px',
+            width: '90%',
+            maxHeight: '90vh',
+            overflow: 'auto'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '20px'
+            }}>
+              <h2 style={{ margin: 0, fontSize: '20px', color: '#333' }}>
+                📍 Confirm Your Location
+              </h2>
+              <button
+                onClick={() => {
+                  setShowLocationModal(false);
+                  setCapturedLocation(null);
+                  setLocationAction('');
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#666'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <p style={{ color: '#666', marginBottom: '16px' }}>
+                {locationAction === 'checkin' 
+                  ? 'You are checking in from this location:' 
+                  : 'You are checking out from this location:'}
+              </p>
+
+              <div style={{
+                backgroundColor: '#f8f9fa',
+                padding: '16px',
+                borderRadius: '8px',
+                marginBottom: '16px'
+              }}>
+                <div style={{ marginBottom: '12px' }}>
+                  <strong style={{ color: '#555' }}>Coordinates:</strong>
+                  <p style={{ margin: '4px 0 0 0', color: '#333' }}>
+                    {capturedLocation.latitude.toFixed(6)}, {capturedLocation.longitude.toFixed(6)}
+                  </p>
+                </div>
+
+                {capturedLocation.address && (
+                  <div>
+                    <strong style={{ color: '#555' }}>Address:</strong>
+                    <p style={{ margin: '4px 0 0 0', color: '#333' }}>
+                      {capturedLocation.address}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Map Link */}
+              <a
+                href={locationService.getMapLink(capturedLocation.latitude, capturedLocation.longitude)}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-block',
+                  padding: '8px 16px',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  textDecoration: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  marginBottom: '16px'
+                }}
+              >
+                🗺️ View on Google Maps
+              </a>
+
+              <p style={{ 
+                fontSize: '13px', 
+                color: '#856404', 
+                backgroundColor: '#fff3cd', 
+                padding: '12px', 
+                borderRadius: '6px',
+                margin: '16px 0 0 0'
+              }}>
+                ⚠️ This location will be recorded for attendance tracking. Please ensure you are at the correct location.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => {
+                  setShowLocationModal(false);
+                  setCapturedLocation(null);
+                  setLocationAction('');
+                }}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#f5f5f5',
+                  color: '#333',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={locationAction === 'checkin' ? confirmCheckIn : confirmCheckOut}
+                disabled={checkingIn || checkingOut}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: (checkingIn || checkingOut) ? '#ccc' : (locationAction === 'checkin' ? '#28a745' : '#dc3545'),
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: (checkingIn || checkingOut) ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                {checkingIn || checkingOut 
+                  ? 'Processing...' 
+                  : locationAction === 'checkin' 
+                    ? '✓ Confirm Check In' 
+                    : '✓ Confirm Check Out'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LEAVE REQUEST MODAL */}
+      {showLeaveModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '500px',
+            width: '90%',
+            maxHeight: '90vh',
+            overflow: 'auto'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '20px'
+            }}>
+              <h2 style={{ margin: 0, fontSize: '20px', color: '#333' }}>
+                🏖️ Request Leave
+              </h2>
+              <button
+                onClick={() => setShowLeaveModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#666'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#555' }}>
+                Leave Type <span style={{ color: 'red' }}>*</span>
+              </label>
+              <select
+                value={leaveData.leaveType}
+                onChange={(e) => setLeaveData({ ...leaveData, leaveType: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '6px',
+                  border: '1px solid #ddd',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="SICK_LEAVE">Sick Leave</option>
+                <option value="CASUAL_LEAVE">Casual Leave</option>
+                <option value="EARNED_LEAVE">Earned Leave</option>
+                <option value="UNPAID_LEAVE">Unpaid Leave</option>
+                <option value="EMERGENCY_LEAVE">Emergency Leave</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#555' }}>
+                Start Date <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                type="date"
+                value={leaveData.startDate}
+                onChange={(e) => setLeaveData({ ...leaveData, startDate: e.target.value })}
+                min={new Date().toISOString().split('T')[0]}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '6px',
+                  border: '1px solid #ddd',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#555' }}>
+                End Date <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                type="date"
+                value={leaveData.endDate}
+                onChange={(e) => setLeaveData({ ...leaveData, endDate: e.target.value })}
+                min={leaveData.startDate}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '6px',
+                  border: '1px solid #ddd',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#555' }}>
+                Reason <span style={{ color: 'red' }}>*</span>
+              </label>
+              <textarea
+                value={leaveData.reason}
+                onChange={(e) => setLeaveData({ ...leaveData, reason: e.target.value })}
+                placeholder="Please provide a reason for your leave request..."
+                rows="4"
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '6px',
+                  border: '1px solid #ddd',
+                  fontSize: '14px',
+                  resize: 'vertical',
+                  fontFamily: 'inherit'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowLeaveModal(false)}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#f5f5f5',
+                  color: '#333',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRequestLeave}
+                disabled={requestingLeave}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: requestingLeave ? '#ccc' : '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: requestingLeave ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                {requestingLeave ? 'Submitting...' : 'Submit Request'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Container */}
+      <div className="toast-container">
+        {toasts.map((toast) => (
+          <Toast
+            key={toast.id}
+            message={toast.message}
+            type={toast.type}
+            onClose={() => removeToast(toast.id)}
+            duration={toast.duration}
+          />
+        ))}
       </div>
 
     </div>

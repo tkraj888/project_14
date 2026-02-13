@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './Employee.css';
+import { BASE_URL } from "/src/config/api.js";
 
-const BASE_URL = "https://jiojibackendv1-production.up.railway.app";
+// const BASE_URL = "https://jiojibackendv1-production.up.railway.app";
+
 const getToken = () => {
   const token = localStorage.getItem("token");
   return token;
@@ -62,13 +64,12 @@ const AddEditEmployee = () => {
     ifscCode: '',
     panNumber: '',
     vehicleNumber: '',
-    description: '',
-    acceptTerms: false,
-    acceptPrivacyPolicy: false
+    description: ''
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   /* ===== LOAD EMPLOYEE ===== */
   useEffect(() => {
@@ -124,20 +125,67 @@ const AddEditEmployee = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccessMessage('');
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Password and Confirm Password do not match');
+    // Client-side validation with specific messages
+    const requiredFields = [
+      { field: 'firstName', label: 'First Name' },
+      { field: 'lastName', label: 'Last Name' },
+      { field: 'email', label: 'Email ID' },
+      { field: 'mobileNumber', label: 'Phone Number' },
+      { field: 'role', label: 'User Type' },
+      { field: 'address', label: 'Address' },
+      { field: 'city', label: 'City' },
+      { field: 'permanentAddress', label: 'Permanent Address' },
+      { field: 'district', label: 'District' },
+      { field: 'state', label: 'State' },
+      { field: 'accountNumber', label: 'Bank Account Number' },
+      { field: 'ifscCode', label: 'IFSC Code' },
+      { field: 'password', label: 'Password' },
+      { field: 'confirmPassword', label: 'Confirm Password' }
+    ];
+
+    // Check for empty required fields
+    const emptyFields = requiredFields.filter(({ field }) => !formData[field] || formData[field].toString().trim() === '');
+    
+    if (emptyFields.length > 0) {
+      const fieldNames = emptyFields.map(({ label }) => label).join(', ');
+      setError(`❌ Please fill in the following required fields: ${fieldNames}`);
       setLoading(false);
       return;
     }
 
-    if (!formData.acceptTerms || !formData.acceptPrivacyPolicy) {
-      setError('Please accept Terms and Privacy Policy');
+    // Password validation
+    if (formData.password !== formData.confirmPassword) {
+      setError('❌ Password and Confirm Password do not match. Please check and try again.');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError('❌ Password must be at least 6 characters long.');
+      setLoading(false);
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('❌ Please enter a valid email address.');
+      setLoading(false);
+      return;
+    }
+
+    // Phone validation
+    if (formData.mobileNumber.length < 10) {
+      setError('❌ Phone number must be at least 10 digits.');
       setLoading(false);
       return;
     }
 
     try {
+      setSuccessMessage('⏳ Registering employee... Please wait.');
+
       const payload = {
         email: formData.email,
         mobileNumber: parseInt(formData.mobileNumber),
@@ -157,8 +205,8 @@ const AddEditEmployee = () => {
         panNumber: formData.panNumber || '',
         vehicleNumber: formData.vehicleNumber || '',
         description: formData.description || '',
-        acceptTerms: formData.acceptTerms,
-        acceptPrivacyPolicy: formData.acceptPrivacyPolicy
+        acceptTerms: true,
+        acceptPrivacyPolicy: true
       };
 
       const res = await fetch(`${BASE_URL}/api/auth/v1/register`, {
@@ -171,25 +219,41 @@ const AddEditEmployee = () => {
 
       const json = await res.json();
       
-      if (!res.ok) throw new Error(json.message || 'Failed to register employee');
+      if (!res.ok) {
+        // Parse backend error message for better clarity
+        let errorMessage = json.message || 'Failed to register employee';
+        
+        // Check for specific error patterns
+        if (errorMessage.toLowerCase().includes('email')) {
+          errorMessage = `❌ Email Error: ${errorMessage}`;
+        } else if (errorMessage.toLowerCase().includes('mobile') || errorMessage.toLowerCase().includes('phone')) {
+          errorMessage = `❌ Phone Number Error: ${errorMessage}`;
+        } else if (errorMessage.toLowerCase().includes('password')) {
+          errorMessage = `❌ Password Error: ${errorMessage}`;
+        } else if (errorMessage.toLowerCase().includes('validation')) {
+          errorMessage = `❌ Validation Error: ${errorMessage}. Please check all required fields.`;
+        } else {
+          errorMessage = `❌ ${errorMessage}`;
+        }
+        
+        throw new Error(errorMessage);
+      }
 
-      // CAPTURING USER ID FROM RESPONSE - Check all possible field names including userID
+      // CAPTURING USER ID FROM RESPONSE
       const userId = json.userID || json.data?.userID || json.data?.userId || json.data?.id || json.userId || json.id;
       
       if (!userId) {
-        console.warn('User ID not found in response:', json);
-        throw new Error('User registered but ID not returned. Please refresh and try uploading documents.');
+        throw new Error('✅ Employee registered successfully, but User ID was not returned. Please refresh the page and try uploading documents.');
       }
-
-      // //console.log('Captured User ID:', userId); // Debug log
       
       setCurrentUserId(userId);
       setIsRegistered(true);
-      
-      alert(`Employee registered successfully! User ID: ${userId}\nYou can now upload documents.`);
+      setSuccessMessage(`✅ Employee registered successfully! User ID: ${userId}. You can now upload documents below.`);
+      setError('');
       
     } catch (err) {
-      setError(err.message || 'Failed to register employee');
+      setError(err.message || '❌ Failed to register employee. Please try again.');
+      setSuccessMessage('');
     } finally {
       setLoading(false);
     }
@@ -209,19 +273,25 @@ const AddEditEmployee = () => {
     };
 
     const documentType = documentTypeMap[type];
+    const documentLabel = {
+      image: 'Profile Photo',
+      pan: 'PAN Card',
+      aadhaar: 'Aadhaar Card',
+      passbook: 'Bank Passbook'
+    }[type];
 
     // Determine which user ID to use
     const targetUserId = id || currentUserId;
 
     if (!targetUserId) {
-      alert('User ID not available. Please register the user first or ensure the employee is loaded.');
+      setError('❌ User ID not available. Please register the employee first before uploading documents.');
       return;
     }
 
     // Get admin token
     const token = getToken();
     if (!token) {
-      alert('Authentication token not found. Please login again.');
+      setError('❌ Authentication token not found. Please login again.');
       navigate('/auth-login');
       return;
     }
@@ -229,15 +299,11 @@ const AddEditEmployee = () => {
     // Verify token is valid before attempting upload
     const isTokenValid = await verifyTokenBeforeUpload(token);
     if (!isTokenValid) {
-      alert('Your session has expired. Please login again.');
+      setError('❌ Your session has expired. Please login again.');
       localStorage.removeItem('token');
       navigate('/auth-login');
       return;
     }
-
-    //console.log('Token verified successfully');
-    //console.log('Target User ID:', targetUserId);
-    //console.log('Document Type:', documentType);
 
     // Create preview immediately for better UX
     setFiles((prev) => ({
@@ -245,44 +311,29 @@ const AddEditEmployee = () => {
       [type]: { file, preview: URL.createObjectURL(file) },
     }));
 
+    setSuccessMessage(`⏳ Uploading ${documentLabel}... Please wait.`);
+    setError('');
+
     try {
       // Create FormData and append the actual file object directly
       const uploadFormData = new FormData();
       
-      // Append the original file object (NOT converted to binary)
       uploadFormData.append('file', file);
       uploadFormData.append('userId', targetUserId);
       uploadFormData.append('documentType', documentType);
-
-      //console.log('=== UPLOAD DEBUG INFO ===');
-      //console.log(`File Name: ${file.name}`);
-      //console.log(`File Size: ${file.size} bytes`);
-      //console.log(`File Type: ${file.type}`);
-      //console.log(`Document Type: ${documentType}`);
-      //console.log(`User ID: ${targetUserId}`);
-      //console.log('FormData contents:');
-      for (let pair of uploadFormData.entries()) {
-        //console.log(`  ${pair[0]}:`, pair[1]);
-      }
-      //console.log('========================');
 
       const res = await fetch(`${BASE_URL}/api/v1/documents/uploadByUser`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
-          // Note: Do NOT set Content-Type when sending FormData - browser sets it with boundary
         },
         body: uploadFormData,
       });
 
-      //console.log('Upload response status:', res.status);
-      //console.log('Upload response headers:', Object.fromEntries(res.headers.entries()));
-
       // Handle 401 - Unauthorized (token expired/invalid)
       if (res.status === 401) {
         const errorJson = await res.json().catch(() => ({}));
-        console.error('401 Error Response:', errorJson);
-        alert(`Upload Failed: ${errorJson.message || "Invalid or expired token"}. Please login again.`);
+        setError(`❌ Upload Failed: ${errorJson.message || "Invalid or expired token"}. Please login again.`);
         localStorage.removeItem("token");
         navigate("/auth-login");
         removeFile(type);
@@ -292,7 +343,7 @@ const AddEditEmployee = () => {
       // Handle 403 - Forbidden (insufficient permissions)
       if (res.status === 403) {
         const errorJson = await res.json().catch(() => ({}));
-        alert(`Access denied: ${errorJson.message || "You don't have permission to upload documents"}`);
+        setError(`❌ Access denied: ${errorJson.message || "You don't have permission to upload documents"}`);
         removeFile(type);
         return;
       }
@@ -300,15 +351,15 @@ const AddEditEmployee = () => {
       const json = await res.json();
       
       if (!res.ok) {
-        throw new Error(json.message || `Failed to upload ${documentType}`);
+        throw new Error(json.message || `Failed to upload ${documentLabel}`);
       }
 
-      alert(`${documentType} uploaded successfully!`);
-      //console.log(`Upload response for ${documentType}:`, json);
+      setSuccessMessage(`✅ ${documentLabel} uploaded successfully!`);
+      setError('');
       
     } catch (err) {
-      console.error(`Upload error for ${type}:`, err);
-      alert(`Failed to upload ${documentType || type}: ${err.message}`);
+      setError(`❌ Failed to upload ${documentLabel}: ${err.message}`);
+      setSuccessMessage('');
       removeFile(type);
     }
   };
@@ -327,20 +378,23 @@ const AddEditEmployee = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!id && !isRegistered) {
-      alert("Please register the user first.");
+      setError("❌ Please register the employee first before saving.");
       return;
     }
 
     setLoading(true);
     setError('');
+    setSuccessMessage('');
     
     try {
       const token = getToken();
       if (!token) {
-        alert('Authentication token not found. Please login again.');
+        setError('❌ Authentication token not found. Please login again.');
         navigate('/auth-login');
         return;
       }
+
+      setSuccessMessage('⏳ Saving employee details... Please wait.');
 
       const payload = {
         ...formData,
@@ -361,20 +415,24 @@ const AddEditEmployee = () => {
       });
 
       if (res.status === 401) {
-        alert('Session expired. Please login again.');
+        setError('❌ Session expired. Please login again.');
         localStorage.removeItem('token');
         navigate('/auth-login');
         return;
       }
 
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Failed to save updates');
+      if (!res.ok) throw new Error(json.message || 'Failed to save employee details');
 
-      alert(id ? 'Employee updated successfully!' : 'Registration process complete!');
-      navigate('/admin/employees');
+      setSuccessMessage(id ? '✅ Employee updated successfully! Redirecting...' : '✅ Employee registration complete! Redirecting...');
+      
+      setTimeout(() => {
+        navigate('/admin/employees');
+      }, 1500);
       
     } catch (err) {
-      setError(err.message);
+      setError(`❌ ${err.message}`);
+      setSuccessMessage('');
     } finally {
       setLoading(false);
     }
@@ -396,14 +454,60 @@ const AddEditEmployee = () => {
         <div className="employee-card">
           <div className="employee-header">
             <h2>{id ? 'Edit Employee' : 'Add New Employee'}</h2>
-            <p>Define item attributes and specifications</p>
+            <p>{id ? 'Update employee information and documents' : 'Register a new employee in the system'}</p>
           </div>
 
-          {error && <div className="error-message" style={{ color: 'red', padding: '10px', marginBottom: '10px', backgroundColor: '#fee', borderRadius: '4px' }}>{error}</div>}
+          {/* Success Message */}
+          {successMessage && (
+            <div className="success-message" style={{ 
+              color: '#2e7d32', 
+              padding: '12px 16px', 
+              marginBottom: '16px', 
+              backgroundColor: '#e8f5e9', 
+              borderRadius: '6px',
+              border: '1px solid #4caf50',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span style={{ fontSize: '18px' }}>ℹ️</span>
+              <span>{successMessage}</span>
+            </div>
+          )}
 
+          {/* Error Message */}
+          {error && (
+            <div className="error-message" style={{ 
+              color: '#c62828', 
+              padding: '12px 16px', 
+              marginBottom: '16px', 
+              backgroundColor: '#ffebee', 
+              borderRadius: '6px',
+              border: '1px solid #ef5350',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span style={{ fontSize: '18px' }}>⚠️</span>
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* User ID Display */}
           {currentUserId && (
-            <div style={{ padding: '10px', marginBottom: '10px', backgroundColor: '#e8f5e9', borderRadius: '4px', color: '#2e7d32' }}>
-              <strong>User ID:</strong> {currentUserId} (Use this for document uploads)
+            <div style={{ 
+              padding: '12px 16px', 
+              marginBottom: '16px', 
+              backgroundColor: '#e3f2fd', 
+              borderRadius: '6px', 
+              color: '#1565c0',
+              border: '1px solid #2196f3',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span style={{ fontSize: '18px' }}>👤</span>
+              <span><strong>User ID:</strong> {currentUserId} - Documents can now be uploaded below</span>
             </div>
           )}
 
@@ -485,8 +589,8 @@ const AddEditEmployee = () => {
                 <input name="permanentAddress" value={formData.permanentAddress} onChange={handleChange} placeholder="Permanent Address" required />
               </div>
               <div className="field">
-                <label>Alt Mobile Number</label>
-                <input type="tel" name="altMobileNumber" value={formData.altMobileNumber} onChange={handleChange} placeholder="Alt Mobile Number" />
+                <label>Emergency Mobile Number</label>
+                <input type="tel" name="altMobileNumber" value={formData.altMobileNumber} onChange={handleChange} placeholder="Emergency Mobile Number" />
               </div>
             </div>
 
@@ -514,8 +618,8 @@ const AddEditEmployee = () => {
 
             <div className="grid-2">
               <div className="field">
-                <label>Account Number<span>*</span></label>
-                <input name="accountNumber" value={formData.accountNumber} onChange={handleChange} placeholder="Account Number" required />
+                <label> Bank Account Number<span>*</span></label>
+                <input name="accountNumber" value={formData.accountNumber} onChange={handleChange} placeholder="Bank Account Number" required />
               </div>
               <div className="field">
                 <label>IFSC Code<span>*</span></label>
@@ -535,30 +639,32 @@ const AddEditEmployee = () => {
             </div>
 
             {!id && (
-              <>
-                <div className="grid-2">
-                  <div className="field">
-                    <label>Password<span>*</span></label>
-                    <input type="password" name="password" value={formData.password} onChange={handleChange} required />
-                  </div>
-                  <div className="field">
-                    <label>Confirm Password<span>*</span></label>
-                    <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required />
-                  </div>
+              <div className="grid-2">
+                <div className="field">
+                  <label>Password<span>*</span></label>
+                  <input 
+                    type="password" 
+                    name="password" 
+                    value={formData.password} 
+                    onChange={handleChange} 
+                    placeholder="Minimum 6 characters"
+                    minLength="6"
+                    required 
+                  />
                 </div>
-                <div className="field full">
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input type="checkbox" name="acceptTerms" checked={formData.acceptTerms} onChange={handleChange} required />
-                    <span>I accept the Terms and Conditions<span>*</span></span>
-                  </label>
+                <div className="field">
+                  <label>Confirm Password<span>*</span></label>
+                  <input 
+                    type="password" 
+                    name="confirmPassword" 
+                    value={formData.confirmPassword} 
+                    onChange={handleChange} 
+                    placeholder="Re-enter password"
+                    minLength="6"
+                    required 
+                  />
                 </div>
-                <div className="field full">
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input type="checkbox" name="acceptPrivacyPolicy" checked={formData.acceptPrivacyPolicy} onChange={handleChange} required />
-                    <span>I accept the Privacy Policy<span>*</span></span>
-                  </label>
-                </div>
-              </>
+              </div>
             )}
 
             <div className="field full">
@@ -569,15 +675,46 @@ const AddEditEmployee = () => {
             {/* ================= ACTIONS (Phase 1) ================= */}
             <div className="form-actions" style={{ marginBottom: '40px', borderBottom: '1px solid #ddd', paddingBottom: '20px' }}>
               {!id && (
-                <button type="button" className="save-btn" onClick={handleRegister} disabled={loading || isRegistered}>
-                  {isRegistered ? 'Registered ✓' : 'Register User'}
+                <button 
+                  type="button" 
+                  className="save-btn" 
+                  onClick={handleRegister} 
+                  disabled={loading || isRegistered}
+                  style={{ 
+                    opacity: (loading || isRegistered) ? 0.6 : 1,
+                    cursor: (loading || isRegistered) ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {loading ? '⏳ Registering...' : isRegistered ? '✅ Registered' : '📝 Register Employee'}
                 </button>
               )}
-              <button type="button" className="cancel-btn" onClick={() => navigate('/admin/employees')}>Cancel</button>
+              <button type="button" className="cancel-btn" onClick={() => navigate('/admin/employees')}>
+                ← Cancel
+              </button>
             </div>
 
             {/* ================= UPLOAD SECTION (Phase 2) ================= */}
-            <div className="upload-grid" style={{ opacity: (isRegistered || id) ? 1 : 0.5, pointerEvents: (isRegistered || id) ? 'auto' : 'none' }}>
+            {!id && !isRegistered && (
+              <div style={{ 
+                padding: '20px', 
+                marginBottom: '20px', 
+                backgroundColor: '#f5f5f5', 
+                borderRadius: '6px',
+                textAlign: 'center',
+                color: '#666'
+              }}>
+                <p style={{ margin: 0 }}>📤 Document upload section will be enabled after employee registration</p>
+              </div>
+            )}
+
+            <div 
+              className="upload-grid" 
+              style={{ 
+                opacity: (isRegistered || id) ? 1 : 0.3, 
+                pointerEvents: (isRegistered || id) ? 'auto' : 'none',
+                transition: 'opacity 0.3s ease'
+              }}
+            >
               <div className="upload-box">
                 <label>Upload Image</label>
                 <div className="upload-row">
@@ -614,9 +751,22 @@ const AddEditEmployee = () => {
 
             {/* ================= FINAL SAVE ================= */}
             <div className="form-actions" style={{ marginTop: '20px' }}>
-              <button type="submit" className="save-btn" disabled={loading || (!isRegistered && !id)}>
-                {loading ? 'Saving...' : id ? 'Update User' : 'Save'}
+              <button 
+                type="submit" 
+                className="save-btn" 
+                disabled={loading || (!isRegistered && !id)}
+                style={{ 
+                  opacity: (loading || (!isRegistered && !id)) ? 0.6 : 1,
+                  cursor: (loading || (!isRegistered && !id)) ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {loading ? '⏳ Saving...' : id ? '💾 Update Employee' : '💾 Save & Complete'}
               </button>
+              {!id && !isRegistered && (
+                <span style={{ marginLeft: '12px', color: '#666', fontSize: '14px' }}>
+                  (Register employee first to enable save)
+                </span>
+              )}
             </div>
           </form>
         </div>
@@ -642,7 +792,7 @@ const AddEditEmployee = () => {
             <div className="details-section">
               <div className="details-grid">
                 {Object.entries(formData).map(([key, value]) =>
-                  value && !['password', 'confirmPassword', 'acceptTerms', 'acceptPrivacyPolicy'].includes(key) ? (
+                  value && !['password', 'confirmPassword'].includes(key) ? (
                     <div key={key} className={key === 'description' ? 'detail-item full' : 'detail-item'}>
                       <span className="detail-label">{fieldLabels[key] || key}</span>
                       <span className="detail-value">{String(value)}</span>

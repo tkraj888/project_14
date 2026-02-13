@@ -1,383 +1,216 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Loader2, Calendar, Users } from "lucide-react";
+import Toast from "../../components/Toast";
+import { useToast } from "../../hooks/useToast";
 import "./AttendanceManagement.css";
- 
+
+const API_BASE_URL = "http://localhost:8080";
+
 const AttendanceManagement = () => {
   const navigate = useNavigate();
-  const [status, setStatus] = useState("All Status");
-  const [attendanceList, setAttendanceList] = useState([]);
-  const [openMenuIndex, setOpenMenuIndex] = useState(null);
- 
-  // 🔴 MOCK DATA (REMOVE when API comes)
+  const { toasts, removeToast, error: showError } = useToast();
+  
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
   useEffect(() => {
-    setAttendanceList([
-      {
-        empId: "EMP001",
-        employeeName: "John Smith",
-        date: "Dec 29, 2025",
-        status: "Present",
-        remarks: null,
-      },
-      {
-        empId: "EMP002",
-        employeeName: "Sarah Johnson",
-        date: "Dec 29, 2025",
-        status: "Present",
-        remarks: null,
-      },
-    ]);
+    fetchEmployees();
   }, []);
- 
-  /*
-  // 🟢 FUTURE API (just uncomment)
-  useEffect(() => {
-    fetch("/api/attendance")
-      .then(res => res.json())
-      .then(data => setAttendanceList(data));
-  }, []);
-  */
- 
-  const getStatusClass = (status) => {
-    if (status === "Present") return "attendance-mgmt-status present";
-    if (status === "Absent") return "attendance-mgmt-status absent";
-    return "attendance-mgmt-status leave";
+
+  const fetchEmployees = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/api/v1/employees/getUsers`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch employees");
+      
+      const response = await res.json();
+      
+      let data = response.data || response;
+      
+      if (data.content && Array.isArray(data.content)) {
+        data = data.content;
+      }
+      
+      const employeeList = Array.isArray(data) ? data : [];
+      
+      setEmployees(employeeList);
+    } catch (err) {
+      setError(err.message);
+      showError(err.message || 'Failed to fetch employees');
+    } finally {
+      setLoading(false);
+    }
   };
- 
-  const handleView = (empId) => {
-    navigate(`/attendance/view/${empId}`);
+
+  const handleViewAttendance = (employeeId) => {
+    navigate(`/admin/attendance/employee/${employeeId}`);
   };
- 
+
+  const handleClearFilters = () => {
+    setSearchTerm("");
+  };
+
+  const filteredEmployees = employees.filter(employee => {
+    const matchesSearch = searchTerm === "" || 
+      employee.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.userId?.toString().includes(searchTerm) ||
+      employee.employeeCode?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return matchesSearch;
+  });
+
   return (
     <div className="attendance-mgmt-container">
-     
       {/* HEADER */}
       <div className="attendance-mgmt-header">
         <div className="attendance-mgmt-title">
           <h2>Attendance Management</h2>
-          <p>View and manage employee attendance records</p>
+          <p>View employee attendance records</p>
         </div>
- 
-        <button className="attendance-mgmt-add-btn">
-          <span className="attendance-mgmt-add-icon">+</span>
-          Add Employee
-        </button>
       </div>
- 
+
       {/* FILTERS */}
       <div className="attendance-mgmt-filters">
-        <input className="attendance-mgmt-input" placeholder="Search by name or ID..." />
-        <select className="attendance-mgmt-select">
-          <option>User Type</option>
-          <option>Admin</option>
-          <option>Employee</option>
-        </select>
-        <select
-          className="attendance-mgmt-select"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-        >
-          <option>All Status</option>
-          <option>Present</option>
-          <option>Absent</option>
-          <option>Leave</option>
-        </select>
-        <input className="attendance-mgmt-input" type="date" />
-        <button className="attendance-mgmt-clear-btn">Clear</button>
+        <input 
+          className="attendance-mgmt-input" 
+          placeholder="Search by name, email or ID..." 
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        
+        <button className="attendance-mgmt-clear-btn" onClick={handleClearFilters}>
+          Clear
+        </button>
       </div>
- 
+
       {/* TABLE */}
       <div className="attendance-mgmt-table-wrapper">
-        <table className="attendance-mgmt-table">
-          <thead>
-            <tr>
-              <th>Emp ID</th>
-              <th>Employee Name</th>
-              <th>Date</th>
-              <th>Status</th>
-              <th>Remarks</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
- 
-          <tbody>
-            {attendanceList.map((item, index) => (
-              <tr key={item.empId}>
-                <td>{item.empId}</td>
-                <td>{item.employeeName}</td>
-                <td>{item.date}</td>
-                <td>
-                  <span className={getStatusClass(item.status)}>
-                    {item.status}
-                  </span>
-                </td>
-                <td>{item.remarks || "-"}</td>
- 
-                {/* ACTIONS */}
-                <td className="attendance-mgmt-actions">
-                  <button
-                    className="attendance-mgmt-dots"
-                    onClick={() =>
-                      setOpenMenuIndex(openMenuIndex === index ? null : index)
-                    }
-                  >
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </button>
- 
-                  {openMenuIndex === index && (
-                    <div className="attendance-mgmt-action-menu">
-                      <button  onClick={() => navigate("/admin/attendance")}>
-                        View
-                      </button>
-                    </div>
-                  )}
-                </td>
+        {loading ? (
+          <div style={{ padding: "40px", textAlign: "center" }}>
+            <Loader2 className="spinner" size={40} style={{ animation: 'spin 1s linear infinite' }} />
+            <p style={{ marginTop: '16px', color: '#666' }}>Loading employees...</p>
+          </div>
+        ) : error ? (
+          <div style={{ padding: "40px", textAlign: "center", color: "#dc3545" }}>
+            <p>{error}</p>
+            <button 
+              onClick={fetchEmployees}
+              style={{
+                marginTop: '16px',
+                padding: '8px 16px',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer'
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        ) : filteredEmployees.length === 0 ? (
+          <div style={{ padding: "40px", textAlign: "center", color: "#666" }}>
+            <Users size={48} color="#ccc" style={{ marginBottom: '16px' }} />
+            <p>No employees found</p>
+            {searchTerm ? (
+              <button 
+                onClick={handleClearFilters}
+                style={{
+                  marginTop: '16px',
+                  padding: '8px 16px',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Clear Search
+              </button>
+            ) : null}
+          </div>
+        ) : (
+          <table className="attendance-mgmt-table">
+            <thead>
+              <tr>
+                <th>Employee ID</th>
+                <th>Employee Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {filteredEmployees.map((employee) => (
+                <tr key={employee.userId}>
+                  <td>{employee.employeeCode || `EMP${employee.userId}`}</td>
+                  <td>{employee.name || 'N/A'}</td>
+                  <td>{employee.email}</td>
+                  <td>{employee.mobile || '-'}</td>
+                  <td>
+                    <span className={`attendance-mgmt-status ${!employee.accountLocked ? 'active' : 'inactive'}`}>
+                      {!employee.accountLocked ? 'Active' : 'Locked'}
+                    </span>
+                  </td>
+                  <td className="attendance-mgmt-actions">
+                    <button
+                      className="attendance-mgmt-view-btn"
+                      onClick={() => handleViewAttendance(employee.userId)}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#007bff',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Calendar size={16} />
+                      View Attendance
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
- 
-      {/* PAGINATION */}
-      <div className="attendance-mgmt-pagination">
-        <button>Prev</button>
-        <button className="active">1</button>
-        <button>2</button>
-        <button>3</button>
-        <button>Next</button>
+
+      {/* Toast Container */}
+      <div className="toast-container">
+        {toasts.map((toast) => (
+          <Toast
+            key={toast.id}
+            message={toast.message}
+            type={toast.type}
+            onClose={() => removeToast(toast.id)}
+            duration={toast.duration}
+          />
+        ))}
       </div>
     </div>
   );
 };
- 
+
 export default AttendanceManagement;
- 
- 
- 
- 
- 
- 
-// import React, { useEffect, useState } from "react";
-// import { useNavigate } from "react-router-dom";
-// import "./AttendanceManagement.css";
- 
-// const BASE_URL = "https://jiojibackendv1-production.up.railway.app";
- 
-// const AttendanceManagement = () => {
-//   const navigate = useNavigate();
- 
-//   const [status, setStatus] = useState("All Status");
-//   const [attendanceList, setAttendanceList] = useState([]);
-//   const [openMenuIndex, setOpenMenuIndex] = useState(null);
- 
-//   // pagination state (API-driven)
-//   const [page, setPage] = useState(0);
-//   const [size] = useState(10);
-//   const [totalPages, setTotalPages] = useState(1);
- 
-//   const [loading, setLoading] = useState(false);
-//   const [error, setError] = useState(null);
- 
-//   /* ================= FETCH ATTENDANCE ================= */
-//   useEffect(() => {
-//     const fetchAttendance = async () => {
-//       setLoading(true);
-//       setError(null);
- 
-//       try {
-//         const token = localStorage.getItem("token");
- 
-//         const pageable = {
-//           page,
-//           size,
-//           sort: ["date,desc"],
-//         };
- 
-//         const response = await fetch(
-//           `${BASE_URL}/api/v1/attendance?pageable=${encodeURIComponent(
-//             JSON.stringify(pageable)
-//           )}`,
-//           {
-//             method: "GET",
-//             headers: {
-//               "Content-Type": "application/json",
-//               Authorization: `Bearer ${token}`,
-//             },
-//           }
-//         );
- 
-//         if (!response.ok) {
-//           throw new Error("Failed to fetch attendance data");
-//         }
- 
-//         const result = await response.json();
- 
-//         // ⬇️ ADJUST HERE if backend keys differ
-//         setAttendanceList(result.content || []);
-//         setTotalPages(result.totalPages || 1);
- 
-//       } catch (err) {
-//         setError(err.message);
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
- 
-//     fetchAttendance();
-//   }, [page, size]);
- 
-//   /* ================= HELPERS ================= */
-//   const getStatusClass = (status) => {
-//     if (status === "Present") return "attendance-mgmt-status present";
-//     if (status === "Absent") return "attendance-mgmt-status absent";
-//     return "attendance-mgmt-status leave";
-//   };
- 
-//   const handleView = (empId) => {
-//     setOpenMenuIndex(null);
-//     navigate(`/attendance/view/${empId}`);
-//   };
- 
-//   /* ================= UI ================= */
-//   return (
-//     <div className="attendance-mgmt-container">
- 
-//       {/* HEADER */}
-//       <div className="attendance-mgmt-header">
-//         <div className="attendance-mgmt-title">
-//           <h2>Attendance Management</h2>
-//           <p>View and manage employee attendance records</p>
-//         </div>
- 
-//         <button className="attendance-mgmt-add-btn">
-//           <span className="attendance-mgmt-add-icon">+</span>
-//           Add Employee
-//         </button>
-//       </div>
- 
-//       {/* FILTERS (UI ONLY – hook later to API if needed) */}
-//       <div className="attendance-mgmt-filters">
-//         <input className="attendance-mgmt-input" placeholder="Search by name or ID..." />
- 
-//         <select className="attendance-mgmt-select">
-//           <option>User Type</option>
-//           <option>Admin</option>
-//           <option>Employee</option>
-//         </select>
- 
-//         <select
-//           className="attendance-mgmt-select"
-//           value={status}
-//           onChange={(e) => setStatus(e.target.value)}
-//         >
-//           <option>All Status</option>
-//           <option>Present</option>
-//           <option>Absent</option>
-//           <option>Leave</option>
-//         </select>
- 
-//         <input className="attendance-mgmt-input" type="date" />
-//         <button className="attendance-mgmt-clear-btn">Clear</button>
-//       </div>
- 
-//       {/* TABLE */}
-//       <div className="attendance-mgmt-table-wrapper">
-//         {loading ? (
-//           <div style={{ padding: "20px", textAlign: "center" }}>
-//             Loading attendance...
-//           </div>
-//         ) : error ? (
-//           <div style={{ padding: "20px", color: "red" }}>
-//             {error}
-//           </div>
-//         ) : (
-//           <table className="attendance-mgmt-table">
-//             <thead>
-//               <tr>
-//                 <th>Emp ID</th>
-//                 <th>Employee Name</th>
-//                 <th>Date</th>
-//                 <th>Status</th>
-//                 <th>Remarks</th>
-//                 <th>Actions</th>
-//               </tr>
-//             </thead>
- 
-//             <tbody>
-//               {attendanceList.length > 0 ? (
-//                 attendanceList.map((item, index) => (
-//                   <tr key={item.empId || index}>
-//                     <td>{item.empId}</td>
-//                     <td>{item.employeeName}</td>
-//                     <td>{item.date}</td>
-//                     <td>
-//                       <span className={getStatusClass(item.status)}>
-//                         {item.status}
-//                       </span>
-//                     </td>
-//                     <td>{item.remarks || "-"}</td>
- 
-//                     <td className="attendance-mgmt-actions">
-//                       <button
-//                         className="attendance-mgmt-dots"
-//                         onClick={() =>
-//                           setOpenMenuIndex(openMenuIndex === index ? null : index)
-//                         }
-//                       >
-//                         <span></span>
-//                         <span></span>
-//                         <span></span>
-//                       </button>
- 
-//                       {openMenuIndex === index && (
-//                         <div className="attendance-mgmt-action-menu">
-//                            <button  onClick={() => navigate("/admin/attendance")}>
-                     
-//                             View
-//                           </button>
-//                         </div>
-//                       )}
-//                     </td>
-//                   </tr>
-//                 ))
-//               ) : (
-//                 <tr>
-//                   <td colSpan="6" style={{ textAlign: "center", padding: "20px" }}>
-//                     No attendance records found
-//                   </td>
-//                 </tr>
-//               )}
-//             </tbody>
-//           </table>
-//         )}
-//       </div>
- 
-//       {/* PAGINATION */}
-//       <div className="attendance-mgmt-pagination">
-//         <button disabled={page === 0} onClick={() => setPage(page - 1)}>
-//           Prev
-//         </button>
- 
-//         {[...Array(totalPages)].map((_, i) => (
-//           <button
-//             key={i}
-//             className={page === i ? "active" : ""}
-//             onClick={() => setPage(i)}
-//           >
-//             {i + 1}
-//           </button>
-//         ))}
- 
-//         <button
-//           disabled={page + 1 >= totalPages}
-//           onClick={() => setPage(page + 1)}
-//         >
-//           Next
-//         </button>
-//       </div>
-//     </div>
-//   );
-// };
-// export default AttendanceManagement;
  

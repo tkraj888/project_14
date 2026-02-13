@@ -2,11 +2,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Search, MoreVertical, Eye, Download, Upload } from "lucide-react";
 import "./Lab.css";
+import { useToast } from "../../hooks/useToast";
 
-const BASE_URL = "https://jiojibackendv1-production.up.railway.app";
+// const BASE_URL = "https://jiojibackendv1-production.up.railway.app";
+const BASE_URL = "http://localhost:8080";
 const getToken = () => localStorage.getItem("token");
 
 const LabReports = () => {
+  const { showToast, ToastComponent } = useToast();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,7 +51,7 @@ const LabReports = () => {
       setReports(json.data?.content || []);
       setTotalPages(json.data?.totalPages || 1);
     } catch (err) {
-      alert(err.message);
+      showToast(err.message, "error");
     } finally {
       setLoading(false);
     }
@@ -93,7 +96,7 @@ const LabReports = () => {
       );
 
       if (!res.ok) {
-        alert("Report not available or access denied");
+        showToast("Report not available or access denied", "error");
         return;
       }
 
@@ -101,7 +104,7 @@ const LabReports = () => {
       const url = window.URL.createObjectURL(blob);
       window.open(url, "_blank");
     } catch (err) {
-      alert("Unable to view report");
+      showToast("Unable to view report", "error");
     }
   };
 
@@ -116,7 +119,7 @@ const LabReports = () => {
       );
 
       if (!res.ok) {
-        alert("Report not available");
+        showToast("Report not available", "error");
         return;
       }
 
@@ -128,7 +131,7 @@ const LabReports = () => {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch {
-      alert("Unable to download report");
+      showToast("Unable to download report", "error");
     }
   };
 
@@ -161,16 +164,16 @@ const LabReports = () => {
 
         if (!res.ok) {
           if (json.message?.includes("already uploaded")) {
-            alert("Report already uploaded. You can view or download it.");
+            showToast("Report already uploaded. You can view or download it.", "info");
             return;
           }
           throw new Error(json.message || "Upload failed");
         }
 
-        alert("Report uploaded successfully!");
+        showToast("Report uploaded successfully!", "success");
         fetchReports(); // Refresh the list
       } catch (err) {
-        alert(err.message);
+        showToast(err.message, "error");
       }
     };
 
@@ -347,6 +350,9 @@ const LabReports = () => {
         Showing {filteredReports.length} of {reports.length} reports
         {(isMobile || isTablet) && " • Scroll horizontally to view all columns"}
       </div>
+      
+      {/* Toast Notifications */}
+      <ToastComponent />
     </div>
   );
 };

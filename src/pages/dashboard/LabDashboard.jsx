@@ -28,7 +28,8 @@ const STATIC_TOTAL_REPORTS = 100;
 const STATIC_PENDING_REPORTS = 0;
  
 /* ================= API ================= */
-const BASE_URL = "https://jiojibackendv1-production.up.railway.app";
+// const BASE_URL = "https://jiojibackendv1-production.up.railway.app";
+const BASE_URL = "http://localhost:8080";
 const getToken = () => localStorage.getItem("token");
  
 export default function LabDashboard() {

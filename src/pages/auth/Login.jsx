@@ -20,10 +20,8 @@ import { MdAttachEmail } from "react-icons/md";
 import { FaLocationDot } from "react-icons/fa6";
 import { GrLogin } from "react-icons/gr";
 import { FaShoppingCart } from "react-icons/fa";
+import { BASE_URL } from "/src/config/api.js";
 
-const BASE_URL = "https://jiojibackendv1-production.up.railway.app";
-
-// Decode JWT payload without a library (does NOT validate signature).
 function parseJwt(token) {
   try {
     if (!token) return null;
@@ -70,6 +68,7 @@ const categories = [
     children: [
       { title: "Organic Fertilizers" },
       { title: "Bio Fertilizers" },
+      { title: "Micronutrients" },
     ],
   },
   { icon: "🛠️", title: "Tools", sub: "150+ Products" },
@@ -87,8 +86,8 @@ const products = [
     rating: "4.8",
     reviews: "186",
     stock: "In Stock",
-    price: "₹299",
-    oldPrice: "₹399",
+    //price: "₹299",
+    //oldPrice: "₹399",
     images: [sweetCorn1],
   },
   {
@@ -98,8 +97,8 @@ const products = [
     rating: "4.7",
     reviews: "210",
     stock: "In Stock",
-    price: "₹180",
-    oldPrice: "₹220",
+//     price: "₹180",
+//     oldPrice: "₹220",
     images: [apple],
   },
   {
@@ -109,8 +108,8 @@ const products = [
     rating: "4.6",
     reviews: "154",
     stock: "In Stock",
-    price: "₹249",
-    oldPrice: "₹320",
+//     price: "₹249",
+//     oldPrice: "₹320",
     images: [wheat],
   },
   {
@@ -120,8 +119,8 @@ const products = [
     rating: "4.5",
     reviews: "198",
     stock: "In Stock",
-    price: "₹120",
-    oldPrice: "₹160",
+//     price: "₹120",
+//     oldPrice: "₹160",
     images: [watermelon],
   },
   {
@@ -131,8 +130,8 @@ const products = [
     rating: "4.4",
     reviews: "176",
     stock: "In Stock",
-    price: "₹150",
-    oldPrice: "₹190",
+//     price: "₹150",
+//     oldPrice: "₹190",
     images: [orange],
   },
   {
@@ -142,8 +141,8 @@ const products = [
     rating: "4.8",
     reviews: "230",
     stock: "In Stock",
-    price: "₹199",
-    oldPrice: "₹260",
+//     price: "₹199",
+//     oldPrice: "₹260",
     images: [sunflower],
   },
   {
@@ -153,8 +152,8 @@ const products = [
     rating: "4.3",
     reviews: "142",
     stock: "In Stock",
-    price: "₹179",
-    oldPrice: "₹230",
+//     price: "₹179",
+//     oldPrice: "₹230",
     images: [bittermelon],
   },
   {
@@ -164,8 +163,8 @@ const products = [
     rating: "4.6",
     reviews: "165",
     stock: "In Stock",
-    price: "₹159",
-    oldPrice: "₹210",
+//     price: "₹159",
+//     oldPrice: "₹210",
     images: [carrot],
   },
 ];
@@ -578,15 +577,15 @@ export default function Login() {
                   <div className="contactItem">
                     <IoCallSharp />
                     <a href="tel:+919766722922"className="contactLink">
-                      +91 97667 22922
+                      +91 91753 12722
                     </a>
                   </div>
                   <div className="contactItem emailItem">
                     <MdAttachEmail /> <a href="mailto:sales@jiojigreenindia.com">sales@jiojigreenindia.com</a>
                   </div>
                   <div className="contactItem">
-                    <FaLocationDot /> 431007 SainathVilla Sundrwadi Chatrapati sambjinagar Near Cambridge School, 5star
-                    MIDC, Airport Road
+                    <FaLocationDot /> 431007 SainathVilla Sundrwadi Chatrapati Sambjinagar (Aurangabad) Near Cambridge School, 5star
+                    MIDC, Airport Road Maharastra.
                   </div>
                 </div>
 

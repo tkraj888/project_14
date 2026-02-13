@@ -1,54 +1,195 @@
 import React, { useMemo, useState, useLayoutEffect } from "react";
- 
+
+import Wheat_Fertilizer from "../../assets/fertilizers_images/Wheat_Fertilizers.jpeg";
+import Tomato_Fertilizer from "../../assets/fertilizers_images/Tomato_Fertilizers.jpeg";
+import Onion_Fertilizer from "../../assets/fertilizers_images/Onion_Fertilizers.jpeg";
+import Tinda_Fertilizer from "../../assets/fertilizers_images/Tinda_Fertilizers.jpeg";
+import Soyabean_Fertilizer from "../../assets/fertilizers_images/Soyabean_Fertilizers.jpeg";
+import Palak_Fertilizer from "../../assets/fertilizers_images/Palak_Fertilizers.jpeg";
+import Radish_Fertilizer from "../../assets/fertilizers_images/Radish_Fertilizers.jpeg";
+import Ridge_Fertilizer from "../../assets/fertilizers_images/Ridge_Fertilizers.jpeg";
+import Spong_Fertilizer from "../../assets/fertilizers_images/Spong_Fertilizers.jpeg";
+import Cluster_Bean_Fertilizer from "../../assets/fertilizers_images/Cluster_Bean_Fertilizers.jpeg";
+import Cowpea_Fertilizer from "../../assets/fertilizers_images/Cowpea_Fertilizers.jpeg";
+import Brinjal_Fertilizer from "../../assets/fertilizers_images/Brinjal_Fertilizers.jpeg";
+import Dollichos_Fertilizer from "../../assets/fertilizers_images/Dollichos_Fertilizers.jpeg";
+import Chilli_Fertilizer from "../../assets/fertilizers_images/Chilli_Fertilizers.jpeg";
+import Methi_Fertilizer from "../../assets/fertilizers_images/Methi_Fertilizers.jpeg";
+import Suryabindu_Fertilizer from "../../assets/fertilizers_images/Suryabindu_Fertilizers.jpeg";
+import Subhraking_Fertilizer from "../../assets/fertilizers_images/Subhraking_Fertilizers.jpeg";
+import Chandra_Fertilizer from "../../assets/fertilizers_images/Chandra_Fertilizers.jpeg";
+import Bottleguard_Fertilizer from "../../assets/fertilizers_images/Bottleguard_Fertilizers.jpeg";
+import Cucumber_Fertilizer from "../../assets/fertilizers_images/Cucumber_Fertilizers.jpeg";
+
 const fertilizersData = [
   {
     id: 1,
-    name: "Nitrogen Fertilizers",
+    name: "Wheat Fertilizers",
+     image: Wheat_Fertilizer,
     description:
-      "Nitrogen fertilizers promote rapid leaf growth and improve overall plant vigor. They are essential for crops like wheat, rice, and maize during early growth stages.",
+      "Wheat fertilizers are nutrient formulations designed to support optimal growth, tillering, and grain development in wheat crops.",
   },
   {
     id: 2,
-    name: "Phosphorus Fertilizers",
+    name: "Soyabean Fertilizers",
+    image: Soyabean_Fertilizer,
     description:
-      "Phosphorus supports strong root development, early plant growth, and improved flowering and fruit formation.",
+      "Soyabean are rich in Phosphorus and Potassium, along with micronutrients like Zinc and Sulfur to improve seed quality and yield.",
   },
   {
     id: 3,
-    name: "Potassium Fertilizers",
+    name: "Tomato Fertilizers",
+    image: Tomato_Fertilizer,
     description:
-      "Potassium helps improve disease resistance, enhances water retention, and increases crop quality and yield.",
+      "Tomato Fertilizers provide balanced Nitrogen, Phosphorus, and higher Potassium to enhance fruit size, color, taste, and overall yield.",
   },
   {
     id: 4,
-    name: "Organic Fertilizers",
+    name: "Ridge Fertilizers",
+    image: Ridge_Fertilizer,
     description:
-      "Organic fertilizers such as compost and manure improve soil structure, microbial activity, and long-term soil fertility.",
+      "Ridge fertilizers Ridge fertilizers are nutrient formulations applied along crop ridges to enhance root development and nutrient absorption efficiency.",
   },
   {
     id: 5,
-    name: "Bio Fertilizers",
+    name: "Spong Fertilizers",
+    image: Spong_Fertilizer,
     description:
-      "Bio-fertilizers contain beneficial microorganisms that enhance nutrient availability and improve soil health naturally.",
+      "Spong fertilizers are specialized nutrient formulations designed to enhance soil moisture retention and improve nutrient uptake efficiency.",
   },
   {
     id: 6,
-    name: "Micronutrient Fertilizers",
+    name: "Chilli Fertilizers",
+    image: Chilli_Fertilizer,
     description:
-      "These fertilizers provide essential trace elements like zinc, iron, and boron that are vital for plant metabolism and growth.",
+      "Chilli fertilizers are formulated to promote healthy vegetative growth, abundant flowering, and high-quality fruit development in chilli crops.",
   },
   {
     id: 7,
-    name: "NPK Complex Fertilizers",
+    name: "Methi Fertilizers",
+    image: Methi_Fertilizer,
     description:
-      "Balanced NPK (Nitrogen-Phosphorus-Potassium) blends that support overall plant growth—strong roots, healthy foliage, and improved yield. Suitable for many crops across multiple growth stages.",
+      "Methi fertilizers are designed to support rapid leafy growth and strong root development in fenugreek crops.",
   },
   {
     id: 8,
-    name: "Water-Soluble Fertilizers",
+    name: "Radish Fertilizers",
+    image: Radish_Fertilizer,
     description:
-      "Highly soluble fertilizers ideal for drip irrigation and foliar spray. They deliver quick nutrient absorption and help correct deficiencies faster, improving crop vigor and uniform growth.",
+      "Radish Fertilizers provide balanced Nitrogen and Phosphorus with adequate Potassium to improve root size, texture, and overall yield quality.",
   },
+  {
+      id: 9,
+      name: "Tinda Fertilizers",
+      image: Tinda_Fertilizer,
+      description:
+        "Tinda Fertilizers provide balanced Nitrogen, Phosphorus, and higher Potassium to enhance fruit size, tenderness, and overall yield.",
+    },
+{
+    id: 10,
+    name: "Coriander Fertilizers",
+    image: Cluster_Bean_Fertilizer,
+    description:
+      "Coriander fertilizers are designed to promote healthy leafy growth and strong root establishment in coriander crops.",
+  },
+  {
+      id: 11,
+      name: "Carrot Fertilizers",
+      image: Cluster_Bean_Fertilizer,
+      description:
+        "Carrot Fertilizers provide balanced Nitrogen and higher Potassium with adequate Phosphorus to improve root size, sweetness, and overall yield quality.",
+    },
+{
+    id: 12,
+    name: "Mustard Fertilizers",
+    image: Cluster_Bean_Fertilizer,
+    description:
+      "Mustard fertilizers are designed to enhance vigorous vegetative growth, flowering, and oilseed formation in mustard crops.",
+  },
+  {
+      id: 13,
+      name: "Palak Fertilizers",
+      image: Cluster_Bean_Fertilizer,
+      description:
+        "Palak fertilizers are formulated to promote rapid leafy growth and rich green foliage in spinach crops.",
+    },
+{
+    id: 14,
+    name: "Dollichos Fertilizers",
+    image: Dollichos_Fertilizer,
+    description:
+      "Dolichos fertilizers are designed to support healthy vine growth, flowering, and pod development in dolichos (hyacinth bean) crops.",
+  },
+  {
+      id: 15,
+      name: "Brinjal Fertilizers",
+      image: Brinjal_Fertilizer,
+      description:
+        "Brinjal fertilizers are formulated to promote strong vegetative growth, continuous flowering, and healthy fruit development in brinjal crops.",
+    },
+{
+    id: 16,
+    name: "Bhendi Fertilizers",
+    image: Cluster_Bean_Fertilizer,
+    description:
+      "Bhendi fertilizers are formulated to support vigorous plant growth, early flowering, and continuous pod production in okra crops.",
+  },
+  {
+      id: 17,
+      name: "Onion Fertilizers",
+      image: Onion_Fertilizer,
+      description:
+        "Onion fertilizers are designed to promote strong root establishment and uniform bulb development in onion crops.",
+    },
+{
+    id: 18,
+    name: "Cowpea Fertilizers",
+    image: Cowpea_Fertilizer,
+    description:
+      "Cowpea fertilizers are formulated to support healthy root nodulation, vegetative growth, and abundant pod formation in cowpea crops.",
+  },
+  {
+      id: 19,
+      name: "Cluster_Bean Fertilizers",
+      image: Cluster_Bean_Fertilizer,
+      description:
+        "Cluster bean fertilizers are designed to promote strong root development, effective nitrogen fixation, and healthy pod formation in guar crops.",
+    },
+{
+      id: 20,
+      name: "Cucumber Fertilizers",
+      image: Cucumber_Fertilizer,
+      description:
+        "Cucumber Fertilizers provide balanced Nitrogen, adequate Phosphorus, and higher Potassium to enhance fruit size, color, and overall yield quality.",
+    },
+{
+      id: 21,
+      name: "Bottleguard Fertilizers",
+      image: Bottleguard_Fertilizer,
+      description:
+        "Bottle gourd fertilizers are designed to promote healthy vine growth, abundant flowering, and uniform fruit development.",
+    },
+{
+      id: 22,
+      name: "F-1 Chandra Fertilizers",
+      image: Chandra_Fertilizer,
+      description:
+        "F-1 Chandra fertilizers are specially formulated to support high-yield hybrid crop performance with balanced nutrient management.",
+    },
+{
+      id: 23,
+      name: "SubraKing Fertilizers",
+      image: Subhraking_Fertilizer,
+      description:
+        "SubraKing fertilizers are premium nutrient formulations designed to promote vigorous crop growth and high yield performance.",
+    },
+{
+      id: 24,
+      name: "Suryabindu Fertilizers",
+      image: Suryabindu_Fertilizer,
+      description:
+        "Suryabindu fertilizers are advanced nutrient formulations designed to ensure balanced crop growth and improved yield potential.",
+    },
 ];
  
 export default function Fertilizers() {
@@ -58,12 +199,10 @@ export default function Fertilizers() {
     }
  
     const scrollToTopEverywhere = () => {
-      // ✅ Window scroll
       window.scrollTo(0, 0);
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
- 
-      // ✅ Also scroll all containers which have scrollbar
+
       const allElements = document.querySelectorAll("*");
       allElements.forEach((el) => {
         const style = window.getComputedStyle(el);
@@ -77,16 +216,13 @@ export default function Fertilizers() {
         }
       });
     };
- 
-    // ✅ run immediately
+
     scrollToTopEverywhere();
- 
-    // ✅ run again after render (best fix for react-router layouts)
+
     requestAnimationFrame(() => {
       scrollToTopEverywhere();
     });
- 
-    // ✅ run again after small delay (some layouts render late)
+
     const timer = setTimeout(() => {
       scrollToTopEverywhere();
     }, 50);
@@ -170,6 +306,14 @@ export default function Fertilizers() {
         boxShadow: "0 14px 30px rgba(17,24,39,0.08)",
         transition: "transform 160ms ease, box-shadow 160ms ease",
       },
+
+        cardImage: {
+          width: "100%",
+          height: 160,
+          objectFit: "cover",
+          borderRadius: 12,
+          marginBottom: 12,
+        },
  
       cardHover: {
         transform: "translateY(-2px)",
@@ -287,6 +431,8 @@ function FertilizerCard({ item, styles }) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
+      <img src={item.image} alt={item.name} style={styles.cardImage} />
+
       <div style={styles.cardTop}>
         <h3 style={styles.cardTitle}>{item.name}</h3>
         <span style={styles.badge}>Recommended</span>

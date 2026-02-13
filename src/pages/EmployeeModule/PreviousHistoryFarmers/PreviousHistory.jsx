@@ -3,10 +3,11 @@ import React, { useState, useEffect } from "react";
 import "./PreviousHistory.css";
 import SurveyDetailView from "../HistoryOverview/HistoryOverview";
 import FarmerRegistration from "../FarmerRegistration/FarmerRegistration";
+import { useToast } from "../../../hooks/useToast";
  
-const API_BASE_URL = "https://jiojibackendv1-production.up.railway.app";
- 
-const authenticatedFetch = async (url, options = {}) => {
+// const API_BASE_URL = "https://jiojibackendv1-production.up.railway.app";
+ const API_BASE_URL = "http://localhost:8080";
+const authenticatedFetch = async (url, options = {}, showToast) => {
   const token = localStorage.getItem("token");
  
   const headers = {
@@ -27,10 +28,12 @@ const authenticatedFetch = async (url, options = {}) => {
     const errorData = await response.json().catch(() => null);
     console.error("401 Error details:", errorData);
  
-    alert("Your session has expired. Please login again.");
+    showToast("Your session has expired. Please login again.", "error");
     localStorage.removeItem("token");
     localStorage.removeItem("role");
-    window.location.href = "/";
+    setTimeout(() => {
+      window.location.href = "/";
+    }, 2000);
     throw new Error("Session expired. Please login again.");
   }
  
@@ -38,6 +41,7 @@ const authenticatedFetch = async (url, options = {}) => {
 };
  
 const PreviousHistory = () => {
+  const { showToast, ToastComponent } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVillage, setSelectedVillage] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
@@ -76,8 +80,10 @@ const PreviousHistory = () => {
  
     if (!token) {
       console.error("❌ No token found - User not authenticated");
-      alert("You are not logged in. Please login first.");
-      window.location.href = "/";
+      showToast("You are not logged in. Please login first.", "error");
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 2000);
       return;
     }
  
@@ -91,7 +97,8 @@ const PreviousHistory = () => {
     try {
       const response = await authenticatedFetch(
         `${API_BASE_URL}/api/v1/employeeFarmerSurveys/my?page=${page}&size=${pageSize}`,
-        { method: "GET" }
+        { method: "GET" },
+        showToast
       );
  
       if (!response.ok) {
@@ -192,7 +199,8 @@ const PreviousHistory = () => {
     try {
       const res = await authenticatedFetch(
         `${API_BASE_URL}/api/v1/employeeFarmerSurveys/${id}`,
-        { method: "GET" }
+        { method: "GET" },
+        showToast
       );
  
       const json = await res.json();
@@ -202,7 +210,7 @@ const PreviousHistory = () => {
       setSelectedSurveyData(json.data); // ✅ FULL survey
       setIsEditing(true);
     } catch (err) {
-      alert("Failed to load survey details");
+      showToast("Failed to load survey details", "error");
       console.error(err);
     }
   };
@@ -435,6 +443,9 @@ const PreviousHistory = () => {
           </div>
         )}
       </div>
+      
+      {/* Toast Notifications */}
+      <ToastComponent />
     </div>
   );
 };

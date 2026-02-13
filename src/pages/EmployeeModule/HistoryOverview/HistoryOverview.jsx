@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import "./HistoryOverview.css";
+import { useToast } from "../../../hooks/useToast";
 
-const API_BASE_URL = "https://jiojibackendv1-production.up.railway.app";
+// const API_BASE_URL = "https://jiojibackendv1-production.up.railway.app";
+const API_BASE_URL = "http://localhost:8080";
 
 // Authenticated fetch utility
-const authenticatedFetch = async (url, options = {}) => {
+const authenticatedFetch = async (url, options = {}, showToast) => {
   const token = localStorage.getItem("token");
 
   // console.log("🔑 Token exists:", !!token);
@@ -29,12 +31,14 @@ const authenticatedFetch = async (url, options = {}) => {
 
   if (response.status === 401) {
     console.error("❌ 401 Unauthorized - Token is invalid or expired");
-    alert("Your session has expired. Please login again.");
+    showToast("Your session has expired. Please login again.", "error");
 
     localStorage.removeItem("token");
     localStorage.removeItem("role");
 
-    window.location.href = "/";
+    setTimeout(() => {
+      window.location.href = "/";
+    }, 2000);
     throw new Error("Session expired. Please login again.");
   }
 
@@ -42,6 +46,7 @@ const authenticatedFetch = async (url, options = {}) => {
 };
 
 const SurveyDetailView = ({ surveyId, onBack }) => {
+  const { showToast, ToastComponent } = useToast();
   const [surveyData, setSurveyData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -67,7 +72,8 @@ const SurveyDetailView = ({ surveyId, onBack }) => {
         `${API_BASE_URL}/api/v1/employeeFarmerSurveys/${surveyId}`,
         {
           method: "GET",
-        }
+        },
+        showToast
       );
 
       if (!response.ok) {
@@ -541,6 +547,9 @@ const SurveyDetailView = ({ surveyId, onBack }) => {
           Back to List
         </button>
       </div>
+      
+      {/* Toast Notifications */}
+      <ToastComponent />
     </div>
   );
 };

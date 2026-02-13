@@ -22,8 +22,6 @@ const EmployeeLoginNew = () => {
     setLoading(true);
 
     try {
-      // console.log('Employee Login attempt with:', { email: formData.email });
-
       if (!formData.email || !formData.password) {
         throw new Error('Please fill in all fields');
       }
@@ -36,9 +34,6 @@ const EmployeeLoginNew = () => {
         },
         'employee'
       );
-
-      // console.log('Login API response:', result);
-      // console.log('JWT stored:', localStorage.getItem('token'));
 
       // Optional UI/session data
       localStorage.setItem('userRole', 'EMPLOYEE');

@@ -1,4 +1,4 @@
-import { BASE_URL, getAuthHeaders } from "./apiConfig";
+import { BASE_URL, getAuthHeaders } from "../config/api";
 
 export const labReportApi = {
 

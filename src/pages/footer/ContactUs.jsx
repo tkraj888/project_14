@@ -7,6 +7,7 @@ import { FaInstagramSquare } from "react-icons/fa";
 import { IoCallSharp } from "react-icons/io5";
 import { MdAttachEmail } from "react-icons/md";
 import { FaLocationDot } from "react-icons/fa6";
+import { useToast } from "../../hooks/useToast";
  
 // ✅ Update path as per your project structure
 import jiojiLogo from "../../assets/Jioji_logo.png";
@@ -19,6 +20,8 @@ const INITIAL_FORM = {
 };
  
 export default function ContactUs() {
+  const { showToast, ToastComponent } = useToast();
+  
   useLayoutEffect(() => {
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
@@ -190,7 +193,7 @@ export default function ContactUs() {
       )
       .then(
         () => {
-          alert("Message sent successfully!");
+          showToast("Message sent successfully!", "success");
           setForm(INITIAL_FORM);
           setErrors({});
           setTouched({
@@ -202,7 +205,7 @@ export default function ContactUs() {
         },
         (error) => {
           console.error("Email error:", error);
-          alert("Failed to send message. Please try again.");
+          showToast("Failed to send message. Please try again.", "error");
         }
       );
   };
@@ -414,6 +417,9 @@ export default function ContactUs() {
           </form>
         </div>
       </div>
+      
+      {/* Toast Notifications */}
+      <ToastComponent />
     </div>
   );
 }

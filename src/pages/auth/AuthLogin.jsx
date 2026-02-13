@@ -5,10 +5,9 @@ import "./authLogin.css";
 import jioji from "../../assets/Jioji_logo.png";
 import { FaUserAlt } from "react-icons/fa";
 import { IoEye, IoEyeOff } from "react-icons/io5";
+import { BASE_URL } from "/src/config/api.js";
 
-const BASE_URL = "https://jiojibackendv1-production.up.railway.app";
 
-/* ================= JWT PARSER (SAFE) ================= */
 function parseJwt(token) {
   try {
     const base64Url = token?.split(".")?.[1];

@@ -1,4 +1,5 @@
-import { BASE_URL, getAuthHeaders } from "./apiConfig";
+import { BASE_URL, getAuthHeaders } from "../config/api";
+import { extractResponseData } from "../utils/apiResponseHandler";
 
 export const adminApi = {
 
@@ -10,7 +11,8 @@ export const adminApi = {
     );
 
     if (!res.ok) throw new Error("Failed to fetch dashboard stats");
-    return (await res.json()).data;
+    const data = await res.json();
+    return extractResponseData(data);
   },
 
   /* ================= EMPLOYEES ================= */
@@ -21,7 +23,8 @@ export const adminApi = {
     );
 
     if (!res.ok) throw new Error("Failed to fetch employees");
-    return res.json();
+    const data = await res.json();
+    return extractResponseData(data);
   },
 
   getEmployeeById: async (id) => {
@@ -31,7 +34,8 @@ export const adminApi = {
     );
 
     if (!res.ok) throw new Error("Failed to fetch employee");
-    return res.json();
+    const data = await res.json();
+    return extractResponseData(data);
   },
 
   createEmployee: async (data) => {
@@ -45,7 +49,8 @@ export const adminApi = {
     );
 
     if (!res.ok) throw new Error("Failed to create employee");
-    return res.json();
+    const responseData = await res.json();
+    return extractResponseData(responseData);
   },
 
   updateEmployee: async (id, data) => {
@@ -59,7 +64,8 @@ export const adminApi = {
     );
 
     if (!res.ok) throw new Error("Failed to update employee");
-    return res.json();
+    const responseData = await res.json();
+    return extractResponseData(responseData);
   },
 
   deleteEmployee: async (id) => {
@@ -87,7 +93,8 @@ export const adminApi = {
     );
 
     if (!res.ok) throw new Error("Failed to add product");
-    return res.json();
+    const responseData = await res.json();
+    return extractResponseData(responseData);
   },
 
   updateProduct: async (id, data) => {
@@ -101,7 +108,8 @@ export const adminApi = {
     );
 
     if (!res.ok) throw new Error("Failed to update product");
-    return res.json();
+    const responseData = await res.json();
+    return extractResponseData(responseData);
   },
 
   deleteProduct: async (id) => {
@@ -125,6 +133,74 @@ export const adminApi = {
     );
 
     if (!res.ok) throw new Error("Failed to fetch farmers");
-    return res.json();
+    const data = await res.json();
+    return extractResponseData(data);
+  },
+
+  /* ================= ATTENDANCE ================= */
+  
+  // Get all employees' attendance for a specific month/year
+  getAllEmployeesAttendance: async (month, year) => {
+    const res = await fetch(
+      `${BASE_URL}/api/v1/attendance/admin/all-employees?month=${month}&year=${year}`,
+      { headers: getAuthHeaders() }
+    );
+
+    if (res.status === 404) {
+      return [];
+    }
+
+    if (!res.ok) throw new Error("Failed to fetch all employees attendance");
+    const response = await res.json();
+    return extractResponseData(response);
+  },
+
+  // Get specific employee's attendance for a specific month/year
+  getEmployeeAttendanceHistory: async (employeeId, month, year) => {
+    const res = await fetch(
+      `${BASE_URL}/api/v1/admin/attendance/employee/${employeeId}?month=${month}&year=${year}`,
+      { headers: getAuthHeaders() }
+    );
+
+    if (res.status === 404) {
+      return { records: [] };
+    }
+
+    if (!res.ok) throw new Error("Failed to fetch attendance history");
+    const response = await res.json();
+    
+    return extractResponseData(response);
+  },
+
+  // Get employee attendance by date range
+  getEmployeeAttendanceByDateRange: async (employeeId, startDate, endDate) => {
+    const res = await fetch(
+      `${BASE_URL}/api/v1/attendance/admin/attendance/employee/${employeeId}/range?startDate=${startDate}&endDate=${endDate}`,
+      { headers: getAuthHeaders() }
+    );
+
+    if (res.status === 404) {
+      return { records: [] };
+    }
+
+    if (!res.ok) throw new Error("Failed to fetch attendance by date range");
+    const response = await res.json();
+    return extractResponseData(response);
+  },
+
+  // Get employee attendance for specific date
+  getEmployeeAttendanceByDate: async (employeeId, date) => {
+    const res = await fetch(
+      `${BASE_URL}/api/v1/attendance/admin/attendance/employee/${employeeId}/date/${date}`,
+      { headers: getAuthHeaders() }
+    );
+
+    if (res.status === 404) {
+      return null;
+    }
+
+    if (!res.ok) throw new Error("Failed to fetch attendance for date");
+    const response = await res.json();
+    return extractResponseData(response);
   }
 };

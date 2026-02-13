@@ -1,4 +1,4 @@
-import { BASE_URL } from "./apiConfig";
+import { BASE_URL } from "../config/api";
 
 export const authApi = {
 
@@ -31,9 +31,9 @@ export const authApi = {
       }
     */
 
-    // ✅ STORE AUTH DATA (SINGLE SOURCE OF TRUTH)
+    // ✅ STORE AUTH DATA (SINGLE SOURCE OF TRUTH - use 'token' consistently)
     if (data.accessToken) {
-      localStorage.setItem("authToken", data.accessToken);
+      localStorage.setItem("token", data.accessToken);
     }
 
     if (data.roles?.length) {
@@ -76,7 +76,7 @@ export const authApi = {
 
   /* ===================== LOGOUT ===================== */
   logout: async () => {
-    const token = localStorage.getItem("authToken");
+    const token = localStorage.getItem("token");
 
     // Call backend logout (optional but clean)
     await fetch(`${BASE_URL}/api/v1/auth/logout`, {
@@ -87,8 +87,12 @@ export const authApi = {
     }).catch(() => {});
 
     // ✅ CLEAR ALL AUTH STATE
-    localStorage.clear("Token");
-    localStorage.clear("role");
-    localStorage.clear("userId");
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("user");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("loginLocation");
   }
 };

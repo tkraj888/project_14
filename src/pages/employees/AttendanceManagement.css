@@ -219,3 +219,38 @@
     overflow-y: visible;
   }
 }
+
+/* SPINNER ANIMATION */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* EMPLOYEE STATUS BADGES */
+.attendance-mgmt-status.active {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.attendance-mgmt-status.inactive {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}

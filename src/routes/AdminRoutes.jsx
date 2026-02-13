@@ -14,9 +14,9 @@ import OrderDetail from '../pages/orders/OrderDetail';
 import ProductList from '../pages/products/ProductList';
 import AddEditProduct from '../pages/products/AddEditProduct';
 import LabReports from '../pages/lab-reports/LabReports';
-import ViewAttendance from '../pages/Attendence/Attendence';
 import AttendanceManagement from '../pages/employees/AttendanceManagement';
- 
+import EmployeeLocationHistory from '../pages/employees/EmployeeLocationHistory';
+import LeaveManagement from '../pages/employees/LeaveManagement';
 
 const AdminRoutes = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -33,7 +33,9 @@ const AdminRoutes = () => {
     <Routes>
       <Route element={<AdminLayout />}>
         <Route path="dashboard" element={<Dashboard />} />
-        <Route path="attendance" element={<ViewAttendance />} />
+        <Route path="attendance" element={<AttendanceManagement />} />
+        <Route path="attendance/employee/:employeeId" element={<EmployeeLocationHistory />} />
+        <Route path="leave-management" element={<LeaveManagement />} />
         <Route path="employees" element={<EmployeeList />} />
         <Route path="employees/add" element={<AddEditEmployee />} />
         <Route path="employees/edit/:id" element={<AddEditEmployee />} />
@@ -48,8 +50,7 @@ const AdminRoutes = () => {
         <Route path="products/add" element={<AddEditProduct />} />
         <Route path="products/edit/:id" element={<AddEditProduct />} />
         <Route path="lab-reports" element={<LabReports />} />
-        <Route path="*" element={<Navigate to="/admin/login" replace />} />
-         <Route path="attendancemanagement" element={<AttendanceManagement />} />
+        <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
       </Route>
     </Routes>
   );

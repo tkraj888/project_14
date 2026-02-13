@@ -1,9 +1,10 @@
 import React, { useState, useRef } from "react";
 import "./FarmerRegistration.css";
 import { useEffect } from "react";
+import { useToast } from "../../../hooks/useToast";
 
-const API_BASE_URL = "https://jiojibackendv1-production.up.railway.app";
-
+// const API_BASE_URL = "https://jiojibackendv1-production.up.railway.app";
+const API_BASE_URL = "http://localhost:8080";
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 export default function FarmerRegistration({
@@ -13,6 +14,7 @@ export default function FarmerRegistration({
   scrollToSelfie = false,
   onSuccess,
 }) {
+  const { showToast, ToastComponent } = useToast();
 
 useEffect(() => {
   // ✅ MOBILE-ONLY hard reset scroll (iOS + Android safe)
@@ -185,7 +187,7 @@ useEffect(() => {
         if (videoRef.current) videoRef.current.srcObject = mediaStream;
       }, 100);
     } catch (error) {
-      alert("Unable to access camera: " + error.message);
+      showToast(error.message || "Unable to access camera", "error");
     }
   };
 
@@ -277,7 +279,7 @@ useEffect(() => {
     if (!file) return;
 
     if (file.size > MAX_FILE_SIZE) {
-      alert("File size must be less than 5 MB");
+      showToast("File size must be less than 5 MB", "error");
       e.target.value = "";
       return;
     }
@@ -286,7 +288,7 @@ useEffect(() => {
     const isPdf = file.type === "application/pdf";
 
     if (!isImage && !isPdf) {
-      alert("Only image or PDF files are allowed");
+      showToast("Only image or PDF files are allowed", "error");
       e.target.value = "";
       return;
     }
@@ -361,7 +363,7 @@ useEffect(() => {
     const canvas = signatureCanvasRef.current;
 
     if (isCanvasEmpty(canvas)) {
-      alert("Please draw your signature first");
+      showToast("Please draw your signature first", "error");
       return;
     }
 
@@ -399,42 +401,42 @@ useEffect(() => {
 
   const handleConfirm = async () => {
     if (!formData.farmerName.trim()) {
-      alert("Please enter Farmer's Name");
+      showToast("Please enter Farmer's Name", "error");
       return;
     }
 
     if (!formData.place.trim()) {
-      alert("Please enter Place");
+      showToast("Please enter Place", "error");
       return;
     }
 
     if (!formData.mobileNumber || formData.mobileNumber.length !== 10) {
-      alert("Please enter a valid 10-digit Mobile Number");
+      showToast("Please enter a valid 10-digit Mobile Number", "error");
       return;
     }
 
     if (!formData.village.trim()) {
-      alert("Please enter Village");
+      showToast("Please enter Village", "error");
       return;
     }
 
     if (!formData.taluka.trim()) {
-      alert("Please enter Taluka");
+      showToast("Please enter Taluka", "error");
       return;
     }
 
     if (!formData.district.trim()) {
-      alert("Please enter District");
+      showToast("Please enter District", "error");
       return;
     }
 
     if (!formData.farmingType) {
-      alert("Please select Type of Farming");
+      showToast("Please select Type of Farming", "error");
       return;
     }
 
     if (!formData.termsAccepted) {
-      alert("Please accept terms & conditions");
+      showToast("Please accept terms & conditions", "error");
       return;
     }
 
@@ -444,7 +446,7 @@ useEffect(() => {
     try {
       token = getValidToken();
     } catch (error) {
-      alert(error.message);
+      showToast(error.message, "error");
       return;
     }
 
@@ -499,13 +501,15 @@ useEffect(() => {
         err.message.includes("Session expired") ||
         err.message.includes("login again")
       ) {
-        alert(err.message + "\n\nRedirecting to login...");
+        showToast(err.message + " - Redirecting to login...", "error");
         // Clear invalid tokens
         localStorage.removeItem("token");
         localStorage.removeItem("role");
-        window.location.href = "/";
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 2000);
       } else {
-        alert(err.message);
+        showToast(err.message, "error");
       }
     } finally {
       setIsSubmitting(false);
@@ -684,7 +688,7 @@ useEffect(() => {
         }
       }, 800);
     } catch (err) {
-      alert(err.message);
+      showToast(err.message, "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -1057,7 +1061,7 @@ useEffect(() => {
                 "Workshops by trained agricultural experts.",
                 "Guidance on modern farming techniques.",
                 "Practical field-based demonstrations.",
-                "Special organic gift and seeds collection worth ₹350/- for registered farmers.",
+                "Special organic gift and seeds collection worth ₹300/- for registered farmers.",
               ].map((text, index) => (
                 <div
                   key={index}
@@ -1438,6 +1442,9 @@ useEffect(() => {
           </div>
         </div>
       )}
+      
+      {/* Toast Notifications */}
+      <ToastComponent />
     </div>
   );
 }

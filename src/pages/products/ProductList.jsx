@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom';
 import { Search, MoreVertical, Eye, FileEdit, Trash2, Plus, X } from 'lucide-react';
 import { useFetch } from '../../hooks/useFetch';
 import { productApi } from '../../api/productApi';
+import { useToast } from '../../hooks/useToast';
 
 const ProductList = () => {
+  const { showToast, ToastComponent } = useToast();
   const { data: response, loading, setData } = useFetch(() => productApi.getAllProducts());
   const [showModal, setShowModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -42,7 +44,7 @@ const ProductList = () => {
         });
         setOpenMenuId(null);
       } catch (error) {
-        alert('Failed to delete product: ' + error.message);
+        showToast('Failed to delete product: ' + error.message, 'error');
       }
     }
   };
@@ -184,6 +186,9 @@ const ProductList = () => {
           </div>
         </div>
       )}
+      
+      {/* Toast Notifications */}
+      <ToastComponent />
     </div>
   );
 };

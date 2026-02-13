@@ -89,6 +89,36 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* QUICK ACTIONS SECTION */}
+      <div className="content-box" style={{ marginTop: '20px' }}>
+        <div className="box-header">
+          <h2>Quick Actions</h2>
+        </div>
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: isMobile ? '1fr' : isTablet ? '1fr 1fr' : 'repeat(4, 1fr)',
+          gap: '16px',
+          padding: '20px'
+        }}>
+          <Link to="/admin/employees/add" className="quick-action-card">
+            <span className="action-icon">➕</span>
+            <span className="action-text">Add Employee</span>
+          </Link>
+          <Link to="/admin/attendance" className="quick-action-card">
+            <span className="action-icon">📋</span>
+            <span className="action-text">View Attendance</span>
+          </Link>
+          <Link to="/admin/leave-management" className="quick-action-card">
+            <span className="action-icon">🏖️</span>
+            <span className="action-text">Leave Requests</span>
+          </Link>
+          <Link to="/admin/employees" className="quick-action-card">
+            <span className="action-icon">👥</span>
+            <span className="action-text">Manage Employees</span>
+          </Link>
+        </div>
+      </div>
+
       {/* 2. ORDERS OVERVIEW - Scrollable Table */}
       <div className="content-box">
         <div className="box-header" style={{ flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: '10px' }}>

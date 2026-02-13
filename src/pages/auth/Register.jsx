@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import logo from '../../assets/Jioji_logo.png';
 import { authApi } from '../../api/authApi';
+import { useToast } from '../../hooks/useToast';
 import '../auth/Login.css';
 
 const Register = () => {
+  const { showToast, ToastComponent } = useToast();
   const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '', phone: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,7 +25,7 @@ const Register = () => {
     try {
       const { confirmPassword, ...registerData } = formData;
       await authApi.register(registerData);
-      alert('Registration successful! Please login.');
+      showToast('Registration successful! Please login.', 'success');
       navigate('/login');
     } catch (err) {
       setError(err.message || 'Registration failed');
@@ -78,6 +80,9 @@ const Register = () => {
           Already have an account? <Link to="/login">Login</Link>
         </div>
       </div>
+      
+      {/* Toast Notifications */}
+      <ToastComponent />
     </div>
   );
 };

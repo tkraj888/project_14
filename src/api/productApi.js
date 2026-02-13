@@ -1,4 +1,4 @@
-import { BASE_URL, getAuthHeaders } from "./apiConfig";
+import { BASE_URL, getAuthHeaders } from "../config/api";
 
 export const productApi = {
 
@@ -37,24 +37,20 @@ export const productApi = {
   },
 
   /* -------- Admin: Create Product -------- */
-  createProduct: async (productData) => {
-    const response = await fetch(
-      `${BASE_URL}/products`,
-      {
+  createProduct: async (formData) => {
+      const response = await fetch(`${BASE_URL}/products/add`, {
         method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify(productData)
+        headers: getAuthHeaders(true), // true = FormData upload
+        body: formData // FormData object, not JSON
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || "Failed to create product");
       }
-    );
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || "Failed to create product");
-    }
-
-    const result = await response.json();
-    return result.data;
-  },
+      return await response.json();
+    },
 
   /* -------- Admin: Update Product -------- */
   updateProduct: async (id, productData) => {

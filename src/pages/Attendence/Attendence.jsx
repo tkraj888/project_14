@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Loader2, AlertCircle, MapPin } from "lucide-react";
+import { locationService } from "../../utils/locationService";
 import "./Attendence.css";
 
-const BASE_URL = "https://jiojibackendv1-production.up.railway.app";
+// const BASE_URL = "https://jiojibackendv1-production.up.railway.app";
+const BASE_URL = "http://localhost:8080";
 
 export default function ViewAttendance() {
   const navigate = useNavigate();
@@ -150,7 +152,7 @@ export default function ViewAttendance() {
                 <table style={{ minWidth: "600px", width: "100%" }}>
                   <thead>
                     <tr>
-                      <th>Date</th><th>Day</th><th>Status</th><th>Check-in</th><th>Check-out</th>
+                      <th>Date</th><th>Day</th><th>Status</th><th>Check-in</th><th>Check-out</th><th>Location</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -162,11 +164,27 @@ export default function ViewAttendance() {
                           <td><span className={`status ${item.status?.toLowerCase()}`}>{item.status}</span></td>
                           <td>{item.checkInTime || item.checkIn || "-"}</td>
                           <td>{item.checkOutTime || item.checkOut || "-"}</td>
+                          <td>
+                            {item.location ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <MapPin size={14} />
+                                <a 
+                                  href={locationService.getMapLink(item.location.latitude, item.location.longitude)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{ color: '#007bff', textDecoration: 'none' }}
+                                  title={item.location.address || 'View on map'}
+                                >
+                                  View
+                                </a>
+                              </div>
+                            ) : '-'}
+                          </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>
+                        <td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>
                           No attendance records found for this month.
                         </td>
                       </tr>

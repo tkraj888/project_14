@@ -607,3 +607,51 @@
 .see-more-link { text-align: right; margin-top: 5px; }
 
 .see-more-link a { color: #1a56db; font-size: 12px; text-decoration: none; }
+
+
+/* Quick Actions */
+.quick-action-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  text-decoration: none;
+  color: white;
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.quick-action-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.quick-action-card .action-icon {
+  font-size: 32px;
+}
+
+.quick-action-card .action-text {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.quick-action-card:nth-child(1) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.quick-action-card:nth-child(2) {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.quick-action-card:nth-child(3) {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.quick-action-card:nth-child(4) {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
