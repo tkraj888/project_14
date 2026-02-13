@@ -8,7 +8,7 @@ import Soyabean_Fertilizer from "../../assets/fertilizers_images/Soyabean_Fertil
 import Palak_Fertilizer from "../../assets/fertilizers_images/Palak_Fertilizers.jpeg";
 import Radish_Fertilizer from "../../assets/fertilizers_images/Radish_Fertilizers.jpeg";
 import Ridge_Fertilizer from "../../assets/fertilizers_images/Ridge_Fertilizers.jpeg";
-import Spong_Fertilizer from "../../assets/fertilizers_images/Spong_Fertilizers.jpeg";
+import Spong_Fertilizer from "../../assets/fertilizers_images/Spong_fertilizers.jpeg";
 import Cluster_Bean_Fertilizer from "../../assets/fertilizers_images/Cluster_Bean_Fertilizers.jpeg";
 import Cowpea_Fertilizer from "../../assets/fertilizers_images/Cowpea_Fertilizers.jpeg";
 import Brinjal_Fertilizer from "../../assets/fertilizers_images/Brinjal_Fertilizers.jpeg";
